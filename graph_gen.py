@@ -11,5 +11,6 @@ class GraphGen:
         bip = bipartite.random_graph(n, m, density, seed=self.seed)
         for u, v in bip.edges():
             bip.edges[u, v]['weight'] = self.rng.integers(weight_range[0], weight_range[1] + 1)
-        return Bipartite(bip)
+        top, bottom = bipartite.sets(bip)
+        return Bipartite(bip, top, bottom)
 
