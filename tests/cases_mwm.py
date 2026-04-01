@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from fractions import Fraction
-
 from graph import BipartiteGraph
 
 
@@ -24,7 +23,7 @@ def build_graph(case: MWMCase) -> BipartiteGraph:
 # Add new examples by appending one more MWMCase here.
 MWM_CASES: tuple[MWMCase, ...] = (
     MWMCase(
-        name="user_known_4x4",
+        name="example_1_Vijay",
         n_u=4,
         n_v=4,
         weighted_edges=(
@@ -36,6 +35,17 @@ MWM_CASES: tuple[MWMCase, ...] = (
             (3, 7, 118),
         ),
         expected_mwm=frozenset({(0, 4), (1, 5), (2, 6), (3, 7)}),
+    ),
+    MWMCase(
+        name="example_3_Vijay",
+        n_u=2,
+        n_v=2,
+        weighted_edges=(
+            (0, 2, 70),
+            (0, 3, 110),
+            (1, 3, 100),
+        ),
+        expected_mwm=frozenset({(0, 2), (1, 3)}),
     ),
     MWMCase(
         name="diagonal_dominates_3x3",
