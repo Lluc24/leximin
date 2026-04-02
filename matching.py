@@ -1,19 +1,31 @@
+from fractions import Fraction
 from graph import BipartiteGraph
 import networkx as nx
-from networkx.algorithms import max_weight_matching
+from networkx.algorithms import max_weight_matching as mwm
 from itertools import product
+from dataclasses import dataclass
 
-class MaxWeightMatcher:
-    def compute(self, graph: BipartiteGraph) -> frozenset[tuple[int, int]]:
-        """
-        Returns the unique MWM as a frozenset of (u, v) pairs.
-        Wraps NetworkX's max_weight_matching.
-        Non-degenerate assumption: the MWM is unique.
-        """
-        bip = nx.Graph()
-        e = [(u, v, float(graph.weight(u, v))) for (u, v) in product(graph.u_vertices, graph.v_vertices)]
-        bip.add_weighted_edges_from(e)
-        m = max_weight_matching(bip)
-        m = [(u, v) if u in graph.u_vertices else (v, u) for (u, v) in m]
-        m.sort()
-        return frozenset(m)
+@dataclass(frozen=True)
+class MaxWeightMatching:
+    weight: Fraction
+    matching: frozenset[tuple[int, int]]
+
+
+def max_weight_matching(graph: BipartiteGraph) -> MaxWeightMatching:
+    """
+    Returns the unique MWM as a frozenset of (u, v) pairs.
+    Wraps NetworkX's max_weight_matching.
+    Non-degenerate assumption: the MWM is unique.
+    """
+    bip = nx.Graph()
+    bip.add_nodes_from(graph.u_vertices, bipartite=0)
+    bip.add_nodes_from(graph.v_vertices, bipartite=1)
+    for e in product(graph.u_vertices, graph.v_vertices):
+        bip.add_edge(*e, weight=graph.weight(*e) if e in graph.edges else Fraction(0))
+    # e = [(u, v, graph.weight(u, v)) for (u, v) in product(graph.u_vertices, graph.v_vertices)]
+    # bip.add_weighted_edges_from(e)
+    matching = mwm(bip)
+    matching = [(u, v) if u in graph.u_vertices else (v, u) for (u, v) in matching]
+    matching = frozenset(sorted(matching))
+    weight = sum((graph.weight(u, v) for (u, v) in matching), Fraction(0))
+    return MaxWeightMatching(weight=weight, matching=matching)
