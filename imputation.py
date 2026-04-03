@@ -1,6 +1,9 @@
 from fractions import Fraction
 from graph import BipartiteGraph
 from classification import Classification
+from matching import MaxWeightMatching
+from pulp import *
+
 
 class Imputation:
     def __init__(self, profits: dict[int, Fraction]):
@@ -29,3 +32,20 @@ class Imputation:
 
     def sorted_essential_profits(self, clf: Classification) -> list[Fraction]:
         return sorted(self._profits[v] for v in clf.essential_vertices)
+
+
+def compute_imputation(graph: BipartiteGraph, mwm: MaxWeightMatching) -> Imputation:
+    prob = LpProblem("Imputation", LpMaximize)
+    profits = {v: LpVariable(f"profit_{v}", lowBound=0) for v in graph.vertices}
+    prob += lpSum(profits[v] for v in graph.vertices)
+
+    for u, v in graph.edges:
+        prob += (profits[u] + profits[v] >= graph.weight(u, v), f"Edge_{u}_{v}")
+
+    for u, v in mwm.matching:
+        prob += (profits[u] + profits[v] == graph.weight(u, v), f"MatchingEdge_{u}_{v}")
+
+    prob.solve()
+
+    imputation = Imputation({v: value(profits[v]) for v in graph.vertices})
+    return imputation
