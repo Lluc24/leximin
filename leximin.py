@@ -78,7 +78,69 @@ class LeximinSolver:
             self._on_tight_edge(event)
 
     def _on_bin_activation(self, event: BinActivationEvent) -> None:
-        pass
+        fc = event.fc
+        self.bin_set.remove(fc)
+        vc = ValidComponent(root=fc)
+        self.active.add(vc)
+        self._schedule_events_for(vc)
+
+    def _on_fully_repaired(self, event: FullyRepairedEvent) -> None:
+        vc = event.vc
+        self.active.remove(vc)
+        min_sub = vc.compute_min_sub1(self.imp)
+        remainder_fcs = vc.decompose_remainder(min_sub)
+        self.fully_repaired.update(min_sub.vertices)
+        for fc in remainder_fcs:
+            self.bin_set.add(fc)
+            ev = BinActivationEvent(clock=fc.min_profit(self.imp), fc=fc)
+            self._push_event(ev)
+
+    def _on_tight_edge(self, event: TightEdgeEvent) -> None:
+        u, v = event.edge
+        source_vc = event.source_vc
+        self.active.remove(source_vc)
+
+        if v in self.frozen:
+            min_sub = source_vc.compute_min_sub3(self.imp)
+            self.frozen.update(min_sub.vertices)
+            self._add_remainders_to_bin(source_vc, min_sub)
+
+        elif v in self.fully_repaired:
+            min_sub = source_vc.compute_min_sub3(self.imp)
+            self.fully_repaired.update(min_sub.vertices)
+            self._add_remainders_to_bin(source_vc, min_sub)
+
+        elif any(v in vc.vertices for vc in self.active):
+            min_sub = source_vc.compute_min_sub2(self.imp)
+            self.fully_repaired.update(min_sub.vertices)
+            self._add_remainders_to_bin(source_vc, min_sub)
+
+        else:
+            [fc] = [fc for fc in self.bin_set if v in fc.vertices]
+            self.bin_set.remove(fc)
+            new_vc = source_vc.add_child_at(u, fc)
+            self.active.add(new_vc)
+            self._schedule_events_for(new_vc)
+
+    def _schedule_events_for(self, vc: ValidComponent) -> None:
+        delta = abs(vc.min_profit_left(self.imp) - vc.min_profit_right(self.imp)) / 2
+        ev = FullyRepairedEvent(self.clock + delta, vc)
+        self._push_event(ev)
+        for u in vc.decreasing_vertices(self.imp):
+            for v in self.graph.neighbors_of(u):
+                edge = (u, v) if u > v else (v, u)
+                if edge in self.clf.subpar_edges and v not in self.frozen | self.fully_repaired:
+                    slack = self.imp.slack(self.graph, *edge)
+                    if slack < delta:
+                        ev = TightEdgeEvent(self.clock + slack, edge, vc)
+                        self._push_event(ev)
+
+    def _add_remainders_to_bin(self, vc: ValidComponent, min_sub: ValidComponent) -> None:
+        remainder_fcs = vc.decompose_remainder(min_sub)
+        for fc in remainder_fcs:
+            self.bin_set.add(fc)
+            ev = BinActivationEvent(fc.min_profit(self.imp), fc)
+            self._push_event(ev)
 
 
 """
