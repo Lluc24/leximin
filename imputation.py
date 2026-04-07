@@ -33,6 +33,14 @@ class Imputation:
     def sorted_essential_profits(self, clf: Classification) -> list[Fraction]:
         return sorted(self._profits[v] for v in clf.essential_vertices)
 
+    def __eq__(self, other):
+        if not isinstance(other, Imputation):
+            return NotImplemented
+        return self._profits == other._profits
+
+    def __repr__(self):
+        return f"Imputation({self._profits})"
+
 
 def compute_imputation(graph: BipartiteGraph, mwm: MaxWeightMatching) -> Imputation:
     prob = LpProblem("Imputation", LpMaximize)
@@ -47,5 +55,8 @@ def compute_imputation(graph: BipartiteGraph, mwm: MaxWeightMatching) -> Imputat
 
     prob.solve()
 
-    imputation = Imputation({v: value(profits[v]) for v in graph.vertices})
+    imputation = Imputation({
+        v: Fraction(str(value(profits[v]))).limit_denominator(10_000)
+        for v in graph.vertices
+    })
     return imputation

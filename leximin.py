@@ -9,7 +9,7 @@ import heapq
 from itertools import count
 
 class LeximinSolver:
-    def __init__(self, graph: BipartiteGraph):
+    def __init__(self, graph: BipartiteGraph, imp: Imputation = None):
         self.graph = graph
         self.clf = classify(graph)
         self.tight_graph = BipartiteGraph(
@@ -23,7 +23,7 @@ class LeximinSolver:
         self.frozen: set[int] = set(self.clf.subpar_u | self.clf.subpar_v)
         self.fully_repaired: set[int] = set()
 
-        self.imp: Imputation = compute_imputation(graph, max_weight_matching(graph))
+        self.imp: Imputation = imp if imp else compute_imputation(graph, max_weight_matching(graph))
         self.clock: Fraction = min(self.imp.profit(v) for v in self.clf.essential_vertices)
         self.pq: list[tuple[Fraction, int, int, Event]] = []
         self.seq = count()
@@ -63,8 +63,8 @@ class LeximinSolver:
         if delta > 0:
             for vc in self.active:
                 self.imp.apply_rotation(
-                    increasing=vc.increasing_vertices(self.imp),
-                    decreasing=vc.decreasing_vertices(self.imp),
+                    increasing=vc.increasing_vertices(),
+                    decreasing=vc.decreasing_vertices(),
                     delta=delta
                 )
             self.clock = new_clock
@@ -80,7 +80,7 @@ class LeximinSolver:
     def _on_bin_activation(self, event: BinActivationEvent) -> None:
         fc = event.fc
         self.bin_set.remove(fc)
-        vc = ValidComponent(root=fc)
+        vc = ValidComponent(root=fc, rotation='CW' if fc.has_min_on_left(self.imp) else 'CCW')
         self.active.add(vc)
         self._schedule_events_for(vc)
 
@@ -96,39 +96,44 @@ class LeximinSolver:
             self._push_event(ev)
 
     def _on_tight_edge(self, event: TightEdgeEvent) -> None:
-        u, v = event.edge
         source_vc = event.source_vc
+        i, j = event.edge if event.edge[0] in source_vc.vertices else event.edge[::-1]
         self.active.remove(source_vc)
 
-        if v in self.frozen:
-            min_sub = source_vc.compute_min_sub3(self.imp)
+        if j in self.frozen:
+            min_sub = source_vc.compute_min_sub3(i)
             self.frozen.update(min_sub.vertices)
             self._add_remainders_to_bin(source_vc, min_sub)
 
-        elif v in self.fully_repaired:
-            min_sub = source_vc.compute_min_sub3(self.imp)
+        elif j in self.fully_repaired:
+            min_sub = source_vc.compute_min_sub3(i)
             self.fully_repaired.update(min_sub.vertices)
             self._add_remainders_to_bin(source_vc, min_sub)
 
-        elif any(v in vc.vertices for vc in self.active):
-            min_sub = source_vc.compute_min_sub2(self.imp)
-            self.fully_repaired.update(min_sub.vertices)
-            self._add_remainders_to_bin(source_vc, min_sub)
+        elif any(j in vc.vertices for vc in self.active):
+            [other_vc] = [vc for vc in self.active if j in vc.vertices]
+            source_min_sub, other_min_sub = source_vc.compute_min_sub2(other_vc, i, j)
+            self.fully_repaired.update(source_min_sub.vertices | other_min_sub.vertices)
+            self._add_remainders_to_bin(source_vc, source_min_sub)
+            self._add_remainders_to_bin(other_vc, other_min_sub)
 
         else:
-            [fc] = [fc for fc in self.bin_set if v in fc.vertices]
+            [fc] = [fc for fc in self.bin_set if j in fc.vertices]
             self.bin_set.remove(fc)
-            new_vc = source_vc.add_child_at(u, fc)
+            new_vc = source_vc.add_child_at(i, fc)
             self.active.add(new_vc)
             self._schedule_events_for(new_vc)
 
     def _schedule_events_for(self, vc: ValidComponent) -> None:
-        delta = abs(vc.min_profit_left(self.imp) - vc.min_profit_right(self.imp)) / 2
+        if vc.rotation == 'CW':
+            delta = abs(self.imp.profit(vc.root.u) - vc.min_profit_on_right(self.imp)) / 2
+        else:
+            delta = abs(self.imp.profit(vc.root.v) - vc.min_profit_on_left(self.imp)) / 2
         ev = FullyRepairedEvent(self.clock + delta, vc)
         self._push_event(ev)
-        for u in vc.decreasing_vertices(self.imp):
-            for v in self.graph.neighbors_of(u):
-                edge = (u, v) if u > v else (v, u)
+        for u in vc.decreasing_vertices():
+            for v in self.graph.neighbors_of(u).difference(vc.vertices):
+                edge = (u, v) if u < v else (v, u)
                 if edge in self.clf.subpar_edges and v not in self.frozen | self.fully_repaired:
                     slack = self.imp.slack(self.graph, *edge)
                     if slack < delta:
@@ -141,91 +146,3 @@ class LeximinSolver:
             self.bin_set.add(fc)
             ev = BinActivationEvent(fc.min_profit(self.imp), fc)
             self._push_event(ev)
-
-
-"""
-def solver(bip: BipartiteGraph):
-
-
-
-    while bin_set | active:
-        _, _, _, event = heapq.heappop(pq)
-
-        delta = event.clock - clock
-        if delta > 0:
-            for vc in active:
-                imp.apply_rotation(
-                    increasing=vc.increasing_vertices(imp),
-                    decreasing=vc.decreasing_vertices(imp),
-                    delta=delta
-                )
-            clock = event.clock
-
-        if isinstance(event, BinActivationEvent) and event.fc in bin_set:
-            bin_set.remove(event.fc)
-            if event.fc.has_min_equal(imp):
-                fully_repaired |= event.fc.vertices
-            else:
-                new_vc = ValidComponent(root=event.fc)
-                active.add(new_vc)
-                candidates = new_vc.right if event.fc.has_min_on_left(imp) else new_vc.left
-                for u in candidates:
-                    for v in bip.neighbors_of(u):
-                        if v not in frozen | fully_repaired:
-                            margin = bip.weight(u, v) - imp.profit(u) - imp.profit(v)
-                            ev = TightEdgeEvent(clock + margin, (u, v), new_vc)
-                            push_event(ev)
-                margin = abs(imp.profit(event.fc.u) - imp.profit(event.fc.v)) / 2
-                ev = FullyRepairedEvent(clock + margin, new_vc)
-                push_event(ev)
-
-        elif isinstance(event, TightEdgeEvent) and event.source_vc in active:
-            u, v = event.edge
-            active.remove(event.source_vc)
-
-            if v in frozen:
-                sub_vc = min_sub3(event.source_vc)
-                fcs = get_fcs_of_deleting(event.source_vc, sub_vc)
-                frozen.add(sub_vc.vertices)
-                for fc in fcs:
-                    bin_set.add(fc)
-                    ev = BinActivationEvent(fc.min_profit(imp), fc)
-                    push_event(ev)
-            elif v in fully_repaired:
-                sub_vc = min_sub3(event.source_vc)
-                fcs = get_fcs_of_deleting(event.source_vc, sub_vc)
-                fully_repaired.add(sub_vc.vertices)
-                for fc in fcs:
-                    bin_set.add(fc)
-                    ev = BinActivationEvent(fc.min_profit(imp), fc)
-                    push_event(ev)
-            elif any(v in vc.vertices for vc in active):
-                sub_vc = min_sub2(event.source_vc)
-                fcs = get_fcs_of_deleting(event.source_vc, sub_vc)
-                fully_repaired.add(sub_vc.vertices)
-                for fc in fcs:
-                    bin_set.add(fc)
-                    ev = BinActivationEvent(fc.min_profit(imp), fc)
-                    push_event(ev)
-            else:
-                [fc] = [fc for fc in bin_set if v in fc.vertices]
-                bin_set.remove(fc)
-                new_vc = event.source_vc.add_child_at(u, fc)
-                active.add(new_vc)
-                u = fc.u if fc.has_min_on_left(imp) else fc.v
-                for v in bip.neighbors_of(u):
-                    if v not in frozen | fully_repaired:
-                        margin = bip.weight(u, v) - imp.profit(u) - imp.profit(v)
-                        ev = TightEdgeEvent(clock + margin, (u, v), new_vc)
-                        push_event(ev)
-
-
-        elif isinstance(event, FullyRepairedEvent) and event.vc in active:
-                active.remove(event.vc)
-                sub_vc = min_sub1(event.vc)
-                fcs = get_fcs_of_deleting(event.vc, sub_vc)
-                fully_repaired.add(sub_vc.vertices)
-                bin_set |= fcs
-
-
-"""

@@ -1,15 +1,16 @@
 from imputation import Imputation
-from leximin import solver
+from leximin import LeximinSolver
 from tests.cases_leximin import LEXIMIN_CASES
+import logging
 
+LOGGER = logging.getLogger("tests.leximin")
 
 def test_returns_expected_leximin_core_imputation() -> None:
     for case in LEXIMIN_CASES:
         graph = case.build_graph()
-        result = solver(graph)
-
-        assert isinstance(result, Imputation)
-        for vertex, expected_profit in case.expected.items():
-            assert result.profit(vertex) == expected_profit, f"Unexpected profit for vertex {vertex} in case {case.name}"
-
+        solver = LeximinSolver(graph)
+        imp = solver.solve()
+        LOGGER.info("Case %s: computed imputation %s", case.name, imp)
+        LOGGER.info("Case %s: expected imputation %s", case.name, Imputation(case.expected))
+        assert imp == Imputation(case.expected)
 

@@ -35,16 +35,8 @@ class FundamentalComponent:
 @dataclass(frozen=True)
 class ValidComponent:
     root: FundamentalComponent
+    rotation: str = 'CW'  # 'CW' or 'CCW'
     children: frozenset['ValidComponent'] = field(default_factory=frozenset)
-
-    def __contains__(self, vertex: int) -> bool:
-        return vertex in self.left or vertex in self.right
-
-    def increasing_vertices(self, imp) -> frozenset[int]:
-        return self.left if self.has_min_on_left(imp) else self.right
-
-    def decreasing_vertices(self, imp) -> frozenset[int]:
-        return self.right if self.has_min_on_left(imp) else self.left
 
     @property
     def left(self) -> frozenset[int]:
@@ -58,60 +50,68 @@ class ValidComponent:
     def vertices(self) -> frozenset[int]:
         return self.left.union(self.right)
 
-    def has_min_on_left(self, imp) -> bool:
-        return self.min_profit_left(imp) <= self.min_profit_right(imp)
+    @property
+    def all_fcs(self) -> set[FundamentalComponent]:
+        return {self.root}.union(*(child.all_fcs for child in self.children))
 
-    def has_min_on_right(self, imp) -> bool:
-        return self.min_profit_right(imp) <= self.min_profit_left(imp)
+    def increasing_vertices(self) -> frozenset[int]:
+        return self.left if self.rotation == 'CW' else self.right
 
-    def has_min_equal(self, imp) -> bool:
-        return self.min_profit_left(imp) == self.min_profit_right(imp)
+    def decreasing_vertices(self) -> frozenset[int]:
+        return self.right if self.rotation == 'CW' else self.left
+
+    def min_profit_on_left(self, imp: Imputation) -> Fraction:
+        return min(imp.profit(v) for v in self.left)
+
+    def min_profit_on_right(self, imp: Imputation) -> Fraction:
+        return min(imp.profit(v) for v in self.right)
 
     def add_child_at(self, vertex, fc: FundamentalComponent) -> 'ValidComponent':
         if vertex in self.root.vertices:
             return ValidComponent(
                 root=self.root,
-                children=self.children.union({ValidComponent(root=fc)})
+                children=self.children.union({ValidComponent(root=fc, rotation=self.rotation)}),
+                rotation=self.rotation
             )
-        else:
-            for child in self.children:
-                if vertex in child.vertices:
-                    new_child = child.add_child_at(vertex, fc)
-                    return ValidComponent(
-                        root=self.root,
-                        children=self.children.difference({child}).union({new_child})
-                    )
-            raise ValueError(f"Vertex {vertex} is not in the component.")
-
-    def min_profit(self, imp) -> Fraction:
-        return min([imp.profit(u) for u in self.root.vertices] + [child.min_profit(imp) for child in self.children])
-
-    def min_profit_left(self, imp) -> Fraction:
-        return min([imp.profit(self.root.u)] + [child.min_profit_left(imp) for child in self.children])
-
-    def min_profit_right(self, imp) -> Fraction:
-        return min([imp.profit(self.root.v)] + [child.min_profit_right(imp) for child in self.children])
-
-    def compute_min_sub1(self, imp) -> 'ValidComponent':
-        fcs = self._get_fcs_with_profit(imp, self.min_profit(imp))
-        def i_compute_min_sub1(vc: ValidComponent) -> ValidComponent | None:
-            children = [i_compute_min_sub1(child) for child in vc.children]
-            if vc.root in fcs or children:
-                return ValidComponent(root=vc.root, children=frozenset(children))
-            return None
-        return i_compute_min_sub1(self)
-
-
-
-    def decompose_remainder(self, min_sub: 'ValidComponent | None') -> set[FundamentalComponent]:
-        if min_sub.root is self.root:
-            return set().union(c1.decompose_remainder(c2) for c1, c2 in zip(self.children, min_sub.children))
-        return {self.root}.union(c.decompose_remainder(None) for c in self.children)
-
-    def _get_fcs_with_profit(self, imp, profit) -> set[FundamentalComponent]:
-        fcs = set()
-        if self.root.min_profit(imp) == profit:
-            fcs.add(self.root)
         for child in self.children:
-            fcs.update(child._get_fcs_with_profit(imp, profit))
-        return fcs
+            if vertex in child.vertices:
+                new_child = child.add_child_at(vertex, fc)
+                return ValidComponent(
+                    root=self.root,
+                    children=self.children.difference({child}).union({new_child}),
+                    rotation=self.rotation
+                )
+        raise ValueError(f"Vertex {vertex} is not in the component.")
+
+    def compute_min_sub1(self, imp: Imputation) -> 'ValidComponent':
+        profit = imp.profit(self.root.u if self.rotation == 'CW' else self.root.v)
+        fcs = {self.root}.union(self._get_descendants_with_profit(imp, profit))
+        return self._compute_min_tree(fcs)
+
+    def compute_min_sub2(self, other_vc: 'ValidComponent', i, j) -> 'tuple[ValidComponent, ValidComponent]':
+        [fc_self] = [fc for fc in self.all_fcs if (i in fc.vertices or j in fc.vertices)]
+        [fc_other] = [fc for fc in other_vc.all_fcs if (i in fc.vertices or j in fc.vertices)]
+        min_tree_self = self._compute_min_tree({fc_self})
+        min_tree_other = other_vc._compute_min_tree({fc_other})
+        return min_tree_self, min_tree_other
+
+    def compute_min_sub3(self, vertex) -> 'ValidComponent':
+        [fc] = [fc for fc in self.all_fcs if vertex in fc.vertices]
+        return self._compute_min_tree({fc})
+
+    def decompose_remainder(self, min_sub: 'ValidComponent') -> set[FundamentalComponent]:
+        return self.all_fcs.difference(min_sub.all_fcs)
+
+    def _get_descendants_with_profit(self, imp, profit) -> set[FundamentalComponent]:
+        fcs = set()
+        if self.rotation == 'CW' and self.root.v == profit:
+            fcs.add(self.root)
+        elif self.rotation == 'CCW' and self.root.u == profit:
+            fcs.add(self.root)
+        return fcs.union(*(c._get_descendants_with_profit(imp, profit) for c in self.children))
+
+    def _compute_min_tree(self, fcs: set[FundamentalComponent]) -> 'ValidComponent | None':
+        children = list(filter(None, [c._compute_min_tree(fcs) for c in self.children]))
+        if self.root in fcs or children:
+            return ValidComponent(root=self.root, children=frozenset(children), rotation=self.rotation)
+        return None

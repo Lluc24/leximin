@@ -7,12 +7,11 @@ class BipartiteGraph:
     v_vertices: frozenset[int]  # IDs n_u to n_v - 1
     weights: dict[tuple[int,int], Fraction]  # (u, v) -> weight
 
-    def neighbors_of(self, vertex: int) -> list[int]:
-        """All neighbors of vertex across the bipartition."""
+    def neighbors_of(self, vertex: int) -> frozenset[int]:
         if vertex in self.u_vertices:
-            return [v for (u, v) in self.weights if u == vertex]
+            return frozenset(v for (u, v) in self.weights if u == vertex)
         elif vertex in self.v_vertices:
-            return [u for (u, v) in self.weights if v == vertex]
+            return frozenset(u for (u, v) in self.weights if v == vertex)
         else:
             raise ValueError(f"Vertex {vertex} is not in the graph.")
 
