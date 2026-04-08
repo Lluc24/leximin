@@ -31,6 +31,12 @@ class FundamentalComponent:
     def min_profit(self, imp: Imputation) -> Fraction:
         return min(imp.profit(self.u), imp.profit(self.v))
 
+    def rotation_to_fully_repair(self, imp: Imputation) -> Fraction:
+        return abs(imp.profit(self.u) - imp.profit(self.v)) / 2
+
+    def __repr__(self):
+        return f"FC({self.u}, {self.v})"
+
 
 @dataclass(frozen=True)
 class ValidComponent:
@@ -65,6 +71,12 @@ class ValidComponent:
 
     def min_profit_on_right(self, imp: Imputation) -> Fraction:
         return min(imp.profit(v) for v in self.right)
+
+    def rotation_to_fully_repair(self, imp: Imputation) -> Fraction:
+        if self.rotation == 'CW':
+            return abs(imp.profit(self.root.u) - self.min_profit_on_right(imp)) / 2
+        else:
+            return abs(imp.profit(self.root.v) - self.min_profit_on_left(imp)) / 2
 
     def add_child_at(self, vertex, fc: FundamentalComponent) -> 'ValidComponent':
         if vertex in self.root.vertices:
@@ -104,9 +116,9 @@ class ValidComponent:
 
     def _get_descendants_with_profit(self, imp, profit) -> set[FundamentalComponent]:
         fcs = set()
-        if self.rotation == 'CW' and self.root.v == profit:
+        if self.rotation == 'CW' and imp.profit(self.root.v) == profit:
             fcs.add(self.root)
-        elif self.rotation == 'CCW' and self.root.u == profit:
+        elif self.rotation == 'CCW' and imp.profit(self.root.u) == profit:
             fcs.add(self.root)
         return fcs.union(*(c._get_descendants_with_profit(imp, profit) for c in self.children))
 
@@ -115,3 +127,6 @@ class ValidComponent:
         if self.root in fcs or children:
             return ValidComponent(root=self.root, children=frozenset(children), rotation=self.rotation)
         return None
+
+    def __repr__(self):
+        return f"VC(root={self.root}, rotation={self.rotation}, children={self.children})"

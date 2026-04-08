@@ -24,7 +24,7 @@ class LeximinSolver:
         self.fully_repaired: set[int] = set()
 
         self.imp: Imputation = imp if imp else compute_imputation(graph, max_weight_matching(graph))
-        self.clock: Fraction = min(self.imp.profit(v) for v in self.clf.essential_vertices)
+        self.clock: Fraction = Fraction(0)
         self.pq: list[tuple[Fraction, int, int, Event]] = []
         self.seq = count()
 
@@ -112,6 +112,7 @@ class LeximinSolver:
 
         elif any(j in vc.vertices for vc in self.active):
             [other_vc] = [vc for vc in self.active if j in vc.vertices]
+            self.active.remove(other_vc)
             source_min_sub, other_min_sub = source_vc.compute_min_sub2(other_vc, i, j)
             self.fully_repaired.update(source_min_sub.vertices | other_min_sub.vertices)
             self._add_remainders_to_bin(source_vc, source_min_sub)
@@ -134,9 +135,18 @@ class LeximinSolver:
         for u in vc.decreasing_vertices():
             for v in self.graph.neighbors_of(u).difference(vc.vertices):
                 edge = (u, v) if u < v else (v, u)
-                if edge in self.clf.subpar_edges and v not in self.frozen | self.fully_repaired:
+                if edge in self.clf.subpar_edges:
                     slack = self.imp.slack(self.graph, *edge)
-                    if slack < delta:
+                    if any(v in other_vc.decreasing_vertices() for other_vc in self.active):
+                        [other_vc] = [other_vc for other_vc in self.active if v in other_vc.decreasing_vertices()]
+                        delta2 = other_vc.rotation_to_fully_repair(self.imp)
+                        if slack <= 2*min(delta, delta2):
+                            ev = TightEdgeEvent(self.clock + slack / 2, edge, vc)
+                            self._push_event(ev)
+                        elif slack < min(delta, delta2) + max(delta, delta2):
+                            ev = TightEdgeEvent(self.clock + slack - min(delta, delta2), edge, vc)
+                            self._push_event(ev)
+                    elif slack < delta:
                         ev = TightEdgeEvent(self.clock + slack, edge, vc)
                         self._push_event(ev)
 
