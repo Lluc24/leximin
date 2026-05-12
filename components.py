@@ -1,11 +1,16 @@
 from dataclasses import dataclass, field
 from fractions import Fraction
 from imputation import Imputation
+from itertools import count
+
+_uid_gen = count(1)
 
 @dataclass(frozen=True)
 class FundamentalComponent:
     u: int
     v: int
+
+    _uid: int = field(default_factory=lambda: next(_uid_gen), init=False)
 
     @property
     def left(self) -> frozenset[int]:
@@ -37,12 +42,20 @@ class FundamentalComponent:
     def __repr__(self):
         return f"FC({self.u}, {self.v})"
 
+    def __eq__(self, other):
+        return isinstance(other, FundamentalComponent) and self._uid == other._uid
+
+    def __hash__(self):
+        return hash(self._uid)
+
 
 @dataclass(frozen=True)
 class ValidComponent:
     root: FundamentalComponent
     rotation: str = 'CW'  # 'CW' or 'CCW'
     children: frozenset['ValidComponent'] = field(default_factory=frozenset)
+
+    _uid: int = field(default_factory=lambda: next(_uid_gen), init=False)
 
     @property
     def left(self) -> frozenset[int]:
@@ -131,3 +144,9 @@ class ValidComponent:
 
     def __repr__(self):
         return f"VC(root={self.root}, rotation={self.rotation}, children={self.children})"
+
+    def __eq__(self, other):
+        return isinstance(other, ValidComponent) and self._uid == other._uid
+
+    def __hash__(self):
+        return hash(self._uid)
