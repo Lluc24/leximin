@@ -1,16 +1,47 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from fractions import Fraction
 from imputation import Imputation
 from itertools import count
+from abc import ABC, abstractmethod
 
 _uid_gen = count(1)
 
-@dataclass(frozen=True)
-class FundamentalComponent:
+
+@dataclass(eq=False, frozen=True)
+class Component(ABC):
+    uid: int = field(default_factory=lambda: next(_uid_gen), init=False, compare=False)
+
+    @property
+    @abstractmethod
+    def left(self) -> frozenset[int]:
+        ...
+
+    @property
+    @abstractmethod
+    def right(self) -> frozenset[int]:
+        ...
+
+    @property
+    def vertices(self) -> frozenset[int]:
+        return self.left.union(self.right)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, Component) and self.uid == other.uid
+
+    def __hash__(self) -> int:
+        return hash(self.uid)
+
+    def copy(self, *, preserve_uid: bool = False) -> "Component":
+        new_obj = replace(self)
+        if preserve_uid:
+            object.__setattr__(new_obj, "uid", self.uid)
+        return new_obj
+
+
+@dataclass(frozen=True, eq=False)
+class FundamentalComponent(Component):
     u: int
     v: int
-
-    _uid: int = field(default_factory=lambda: next(_uid_gen), init=False)
 
     @property
     def left(self) -> frozenset[int]:
@@ -19,10 +50,6 @@ class FundamentalComponent:
     @property
     def right(self) -> frozenset[int]:
         return frozenset({self.v})
-
-    @property
-    def vertices(self) -> frozenset[int]:
-        return self.left.union(self.right)
 
     def has_min_on_left(self, imp: Imputation) -> bool:
         return imp.profit(self.u) <= imp.profit(self.v)
@@ -39,23 +66,12 @@ class FundamentalComponent:
     def rotation_to_fully_repair(self, imp: Imputation) -> Fraction:
         return abs(imp.profit(self.u) - imp.profit(self.v)) / 2
 
-    def __repr__(self):
-        return f"FC({self.u}, {self.v})"
 
-    def __eq__(self, other):
-        return isinstance(other, FundamentalComponent) and self._uid == other._uid
-
-    def __hash__(self):
-        return hash(self._uid)
-
-
-@dataclass(frozen=True)
-class ValidComponent:
+@dataclass(frozen=True, eq=False)
+class ValidComponent(Component):
     root: FundamentalComponent
     rotation: str = 'CW'  # 'CW' or 'CCW'
     children: frozenset['ValidComponent'] = field(default_factory=frozenset)
-
-    _uid: int = field(default_factory=lambda: next(_uid_gen), init=False)
 
     @property
     def left(self) -> frozenset[int]:
@@ -66,16 +82,13 @@ class ValidComponent:
         return self.root.right.union(*(child.right for child in self.children))
 
     @property
-    def vertices(self) -> frozenset[int]:
-        return self.left.union(self.right)
-
-    @property
     def all_fcs(self) -> frozenset[FundamentalComponent]:
         return frozenset({self.root}).union(*(child.all_fcs for child in self.children))
 
     @property
     def increasing_vertices(self) -> frozenset[int]:
         return self.left if self.rotation == 'CW' else self.right
+
     @property
     def decreasing_vertices(self) -> frozenset[int]:
         return self.right if self.rotation == 'CW' else self.left
@@ -141,12 +154,3 @@ class ValidComponent:
         if self.root in fcs or children:
             return ValidComponent(root=self.root, children=children, rotation=self.rotation)
         return None
-
-    def __repr__(self):
-        return f"VC(root={self.root}, rotation={self.rotation}, children={self.children})"
-
-    def __eq__(self, other):
-        return isinstance(other, ValidComponent) and self._uid == other._uid
-
-    def __hash__(self):
-        return hash(self._uid)
