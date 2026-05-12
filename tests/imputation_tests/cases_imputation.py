@@ -1,3 +1,5 @@
+"""Table-driven test cases for imputation behavior."""
+
 from dataclasses import dataclass
 from fractions import Fraction
 
@@ -8,16 +10,22 @@ from tests.graphs import ALL_ONES_2X2_GRAPH, SAMPLE_GRAPH, VIJAY_EXAMPLE_3_GRAPH
 
 @dataclass(frozen=True)
 class ImputationProfitCase(Case[dict[int, Fraction]]):
+    """Case for direct vertex profit lookup."""
+
     profits: dict[int, Fraction]
 
 
 @dataclass(frozen=True)
 class ImputationSlackCase(Case[dict[tuple[int, int], Fraction]]):
+    """Case for edge slack and tightness checks."""
+
     profits: dict[int, Fraction]
 
 
 @dataclass(frozen=True)
 class ImputationRotationCase(Case[dict[int, Fraction]]):
+    """Case for one rotation update."""
+
     profits: dict[int, Fraction]
     increasing: frozenset[int]
     decreasing: frozenset[int]
@@ -26,6 +34,8 @@ class ImputationRotationCase(Case[dict[int, Fraction]]):
 
 @dataclass(frozen=True)
 class ImputationCopyCase(Case[dict[int, Fraction]]):
+    """Case for copy independence checks."""
+
     profits: dict[int, Fraction]
     mutated_vertex: int
     mutated_value: Fraction
@@ -33,6 +43,8 @@ class ImputationCopyCase(Case[dict[int, Fraction]]):
 
 @dataclass(frozen=True)
 class ImputationEssentialProfitsCase(Case[list[Fraction]]):
+    """Case for sorted essential-vertex profits."""
+
     profits: dict[int, Fraction]
     classification: Classification
 

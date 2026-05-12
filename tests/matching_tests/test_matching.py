@@ -1,8 +1,11 @@
+"""Tests for maximum-weight matching wrapper behavior."""
+
 import logging
+from fractions import Fraction
+
+from graph import BipartiteGraph
 from matching import MaxWeightMatching, max_weight_matching
 from tests.matching_tests.cases_mwm import MWM_CASES
-from graph import BipartiteGraph
-from fractions import Fraction
 
 
 LOGGER = logging.getLogger("tests.mwm")
@@ -35,4 +38,3 @@ def test_correct_weight(sample_graph: BipartiteGraph) -> None:
         sample_matching.weight,
     )
     assert sample_matching.weight == expected_weight
-

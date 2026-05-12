@@ -1,12 +1,17 @@
+"""Table-driven cases for end-to-end leximin solver tests."""
+
+from dataclasses import dataclass
 from fractions import Fraction
+
 from imputation import Imputation
 from tests.case import Case
-from dataclasses import dataclass
 from tests.graphs import VIJAY_EXAMPLE_1_GRAPH, VIJAY_EXAMPLE_3_GRAPH, VIJAY_EXAMPLE_5_GRAPH
 
 
 @dataclass(frozen=True)
 class LeximinCase(Case[dict[int, Fraction]]):
+    """Case for leximin solver output, with optional starting imputation."""
+
     initial_imputation: Imputation | None = None
 
 
@@ -61,4 +66,3 @@ LeximinCase(
         },
     ),
 )
-

@@ -1,10 +1,14 @@
+"""Classification of vertices and edges for the assignment-game algorithm."""
+
 from dataclasses import dataclass, field
+
 from graph import BipartiteGraph
 from matching import max_weight_matching
-from itertools import chain
 
 @dataclass(frozen=True)
 class Classification:
+    """Partition of graph elements into essential, viable, and subpar sets."""
+
     essential_u: frozenset[int] = field(default_factory=frozenset)
     essential_v: frozenset[int] = field(default_factory=frozenset)
     viable_u: frozenset[int] = field(default_factory=frozenset)
@@ -18,10 +22,12 @@ class Classification:
 
     @property
     def essential_vertices(self) -> frozenset[int]:
+        """Return all vertices that are essential in every maximum matching."""
         return self.essential_u | self.essential_v
 
 
 def classify(graph: BipartiteGraph) -> Classification:
+    """Compute edge/vertex classes from matching-sensitivity tests."""
     matching = max_weight_matching(graph)
 
     essential_edges = frozenset()
@@ -41,6 +47,7 @@ def classify(graph: BipartiteGraph) -> Classification:
             subpar_edges -= {(u, v)}
 
     def classify_vertices(u_vertices: bool) -> tuple[frozenset[int], frozenset[int], frozenset[int]]:
+        """Classify either the U side or the V side against the computed edge sets."""
         vertices_set = graph.u_vertices if u_vertices else graph.v_vertices
         essential = frozenset()
         for vtx in vertices_set:

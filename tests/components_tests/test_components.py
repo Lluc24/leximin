@@ -1,3 +1,5 @@
+"""Tests for component tree operations used by the leximin solver."""
+
 from fractions import Fraction
 
 import pytest

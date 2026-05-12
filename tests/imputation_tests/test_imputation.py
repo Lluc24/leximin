@@ -1,3 +1,5 @@
+"""Tests for imputation operations and core feasibility."""
+
 import logging
 
 from fractions import Fraction
@@ -20,17 +22,20 @@ LOGGER = logging.getLogger("tests.imputation")
 
 
 def assert_profits(imputation: Imputation, expected: dict[int, Fraction]) -> None:
+    """Assert exact profits for all listed vertices."""
     for vertex, value in expected.items():
         assert imputation.profit(vertex) == value, f"Unexpected profit for vertex {vertex}"
 
 
 def verify_is_in_core(graph: BipartiteGraph, imputation: Imputation) -> None:
+    """Assert that every coalition receives at least its matching value."""
     vertices = tuple(sorted(graph.vertices))
     coalitions = chain.from_iterable(combinations(vertices, size) for size in range(len(vertices) + 1))
     for coalition in coalitions:
         coalition_set = frozenset(coalition)
         coalition_u = graph.u_vertices.intersection(coalition_set)
         coalition_v = graph.v_vertices.intersection(coalition_set)
+        # Coalition value is evaluated on the induced bipartite subgraph.
         coalition_graph = BipartiteGraph(
             u_vertices=coalition_u,
             v_vertices=coalition_v,

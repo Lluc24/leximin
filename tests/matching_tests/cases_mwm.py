@@ -1,7 +1,10 @@
+"""Table-driven expected outcomes for max-weight matching tests."""
+
+from fractions import Fraction
+
 from matching import MaxWeightMatching
 from tests.case import Case
 from tests.graphs import VIJAY_EXAMPLE_1_GRAPH, VIJAY_EXAMPLE_3_GRAPH
-from fractions import Fraction
 
 MWMCase = Case[MaxWeightMatching]
 
@@ -25,4 +28,3 @@ MWM_CASES: tuple[MWMCase, ...] = (
         )
     ),
 )
-

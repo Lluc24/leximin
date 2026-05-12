@@ -1,22 +1,24 @@
+"""Maximum-weight matching wrapper utilities."""
+
+from dataclasses import dataclass
 from fractions import Fraction
-from graph import BipartiteGraph
+from itertools import product
+
 import networkx as nx
 from networkx.algorithms import max_weight_matching as mwm
-from itertools import product
-from dataclasses import dataclass
+
+from graph import BipartiteGraph
 
 @dataclass(frozen=True)
 class MaxWeightMatching:
+    """Weight and edge set of a bipartite maximum-weight matching."""
+
     weight: Fraction
     matching: frozenset[tuple[int, int]]
 
 
 def max_weight_matching(graph: BipartiteGraph) -> MaxWeightMatching:
-    """
-    Returns the unique MWM as a frozenset of (u, v) pairs.
-    Wraps NetworkX's max_weight_matching.
-    Non-degenerate assumption: the MWM is unique.
-    """
+    """Return a maximum-weight matching in `(u, v)` orientation."""
     bip = nx.Graph()
     bip.add_nodes_from(graph.u_vertices, bipartite=0)
     bip.add_nodes_from(graph.v_vertices, bipartite=1)

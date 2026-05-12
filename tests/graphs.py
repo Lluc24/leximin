@@ -1,15 +1,23 @@
+"""Reusable graph fixtures for module-level test suites."""
+
 from dataclasses import dataclass
 from fractions import Fraction
+
 from graph import BipartiteGraph
 
+
 def set_u_vertices(n_u: int) -> frozenset[int]:
+    """Return U-side vertex ids in the repository convention."""
     return frozenset(range(n_u))
 
 def set_v_vertices(n_u: int, n_v: int) -> frozenset[int]:
+    """Return V-side vertex ids directly after U ids."""
     return frozenset(range(n_u, n_u + n_v))
 
 @dataclass(frozen=True)
 class NamedBipartiteGraph(BipartiteGraph):
+    """Bipartite graph with a stable test case name."""
+
     name: str
 
 

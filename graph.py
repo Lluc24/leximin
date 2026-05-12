@@ -1,13 +1,18 @@
+"""Immutable bipartite graph model with weighted edges."""
+
 from fractions import Fraction
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class BipartiteGraph:
+    """Bipartite graph with integer-labeled vertices and rational edge weights."""
+
     u_vertices: frozenset[int]  # IDs 0 to n_u - 1
     v_vertices: frozenset[int]  # IDs n_u to n_v - 1
-    weights: dict[tuple[int,int], Fraction]  # (u, v) -> weight
+    weights: dict[tuple[int, int], Fraction]  # (u, v) -> weight
 
     def neighbors_of(self, vertex: int) -> frozenset[int]:
+        """Return all neighbors of `vertex` on the opposite side of the bipartition."""
         if vertex in self.u_vertices:
             return frozenset(v for u, v in self.weights if u == vertex)
         elif vertex in self.v_vertices:
@@ -16,21 +21,25 @@ class BipartiteGraph:
             raise ValueError(f"Vertex {vertex} is not in the graph.")
 
     def weight(self, u: int, v: int) -> Fraction:
+        """Return edge weight, defaulting to zero for missing edges."""
         if (u, v) in self.weights:
             return self.weights[(u, v)]
         else:
-            return Fraction(0) # No edge means weight 0
+            return Fraction(0)  # No edge means weight 0
 
     @property
     def edges(self) -> frozenset[tuple[int, int]]:
+        """Return all explicit edges."""
         return frozenset(self.weights.keys())
 
     @property
     def vertices(self) -> frozenset[int]:
+        """Return all vertices across both sides."""
         return frozenset(self.u_vertices) | set(self.v_vertices)
 
     @property
     def weighted_edges(self) -> frozenset[tuple[int, int, Fraction]]:
+        """Return all edges together with their weights."""
         return frozenset((u, v, w) for (u, v), w in self.weights.items())
 
     def __add__(self, other: tuple[int, int, Fraction]) -> 'BipartiteGraph':
@@ -47,7 +56,7 @@ class BipartiteGraph:
         )
 
     def __sub__(self, other: tuple[int, int] | int) -> 'BipartiteGraph':
-        """Returns a new graph with the given edge removed."""
+        """Return a new graph with one edge or one vertex removed."""
         if isinstance(other, tuple) and len(other) == 2:
             u, v = other
             if (u, v) not in self.weights:

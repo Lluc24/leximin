@@ -1,3 +1,5 @@
+"""Table-driven cases for solver event dataclasses."""
+
 from dataclasses import dataclass
 from fractions import Fraction
 
@@ -8,6 +10,8 @@ from tests.graphs import SAMPLE_GRAPH
 
 @dataclass(frozen=True)
 class EventCase(Case[tuple[int, str]]):
+    """Case for event payload and priority checks."""
+
     clock: Fraction
     fc: FundamentalComponent
     vc: ValidComponent

@@ -1,3 +1,5 @@
+"""Tests for immutable bipartite graph operations."""
+
 from fractions import Fraction
 import pytest
 from graph import BipartiteGraph
@@ -70,4 +72,3 @@ def test_add_vertex_to_v(sample_graph: BipartiteGraph) -> None:
     updated = sample_graph.add_vertex_to_v(11)
     assert 11 in updated.v_vertices
     assert 11 not in sample_graph.v_vertices
-

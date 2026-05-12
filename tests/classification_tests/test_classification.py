@@ -1,3 +1,5 @@
+"""Tests for the essential/viable/subpar classification routine."""
+
 from classification import classify, Classification
 from tests.classification_tests.cases_classification import CLASSIFICATION_CASES
 
@@ -15,4 +17,3 @@ def test_essential_vertices_property_matches_essential_parts() -> None:
     for case in CLASSIFICATION_CASES:
         classification = classify(case.graph)
         assert classification.essential_vertices == classification.essential_u | classification.essential_v
-

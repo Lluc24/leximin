@@ -1,9 +1,11 @@
+"""Table-driven cases for graph classification tests."""
+
 from classification import Classification
 from tests.case import Case
 from tests.graphs import (
-  CLASSIFICATION_SINGLE_U_TWO_V_ALL_VIABLE_GRAPH,
-  CLASSIFICATION_SINGLE_U_TWO_V_WITH_DELTA_DIFFERENCE_GRAPH,
-  ALL_ONES_2X2_GRAPH,
+    ALL_ONES_2X2_GRAPH,
+    CLASSIFICATION_SINGLE_U_TWO_V_ALL_VIABLE_GRAPH,
+    CLASSIFICATION_SINGLE_U_TWO_V_WITH_DELTA_DIFFERENCE_GRAPH,
 )
 
 
@@ -40,4 +42,3 @@ CLASSIFICATION_CASES: tuple[ClassificationCase, ...] = (
         ),
     )
 )
-

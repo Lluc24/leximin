@@ -1,3 +1,5 @@
+"""Tests for event payload fields and queue-priority ordering."""
+
 from events import BinActivationEvent, FullyRepairedEvent, TightEdgeEvent
 from tests.events_tests.cases_events import EVENT_CASES
 

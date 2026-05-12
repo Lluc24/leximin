@@ -1,3 +1,5 @@
+"""Table-driven cases for component-subtree operations."""
+
 from dataclasses import dataclass
 from fractions import Fraction
 
@@ -8,17 +10,22 @@ from tests.graphs import SAMPLE_GRAPH
 
 
 def fc_pairs(component: ValidComponent) -> frozenset[tuple[int, int]]:
+    """Project a valid component to `(u, v)` pairs for concise assertions."""
     return frozenset((fc.u, fc.v) for fc in component.all_fcs)
 
 
 @dataclass(frozen=True)
 class MinSubCase(Case[frozenset[tuple[int, int]]]):
+    """Case for a single minimal-subtree extraction."""
+
     component: ValidComponent
     imputation: Imputation
 
 
 @dataclass(frozen=True)
 class MinSub2Case(Case[tuple[frozenset[tuple[int, int]], frozenset[tuple[int, int]]]]):
+    """Case for two-component minimal subtree extraction."""
+
     source: ValidComponent
     other: ValidComponent
     i: int
