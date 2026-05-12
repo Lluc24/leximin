@@ -1,7 +1,6 @@
 """End-to-end tests for the leximin solver."""
 
 import logging
-
 from graph import BipartiteGraph
 from imputation import Imputation
 from leximin import LeximinSolver
@@ -27,4 +26,3 @@ def verify_feasibility(graph: BipartiteGraph, imp: Imputation) -> None:
     for u, v in graph.edges:
         assert imp.slack(graph, u, v) >= 0, f"Edge ({u}, {v}) is not dual feasible: slack={imp.slack(graph, u, v)}"
     verify_is_in_core(graph, imp)
-

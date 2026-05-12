@@ -1,6 +1,7 @@
 """Event-driven solver for computing a leximin core imputation."""
 
 import heapq
+from collections.abc import Callable
 from components import FundamentalComponent, ValidComponent
 from classification import classify
 from events import BinActivationEvent, FullyRepairedEvent, TightEdgeEvent, Event
@@ -17,18 +18,13 @@ class LeximinSolver:
         """Initialize solver state from graph classification and initial imputation."""
         self.graph = graph
         self.clf = classify(graph)
-        self.tight_graph = BipartiteGraph(
-            u_vertices=graph.u_vertices,
-            v_vertices=graph.v_vertices,
-            weights={edge: graph.weight(*edge) for edge in self.clf.essential_edges}
-        )
 
         self.bin_set: set[FundamentalComponent] = set()
         self.active: set[ValidComponent] = set()
-        self.frozen: set[int] = set(self.clf.subpar_u | self.clf.subpar_v)
+        self.frozen: set[int] = set()
         self.fully_repaired: set[int] = set()
 
-        self.imp: Imputation = imp if imp else compute_imputation(graph, max_weight_matching(graph))
+        self.imp: Imputation = imp or compute_imputation(graph, max_weight_matching(graph))
         self.clock: Fraction = Fraction(0)
         self.pq: list[tuple[Fraction, int, int, Event]] = []
         self.seq = count()
@@ -181,3 +177,26 @@ class LeximinSolver:
             self.bin_set.add(fc)
             ev = BinActivationEvent(fc.min_profit(self.imp), fc)
             self._push_event(ev)
+
+    def _dfs_decomposition(self) -> list[set[int]]:
+        """Decompose graph into connected components using DFS. Only essential and viable edges are traversed."""
+        visited = set()
+        components = []
+
+        def dfs(u: int) -> set[int]:
+            reachable = {u}
+            s: Callable[[int, int], tuple[int, int]] = lambda x, y: (x, y) if x < y else (y, x)
+            neighbors = [
+                v for v in self.graph.neighbors_of(u)
+                if v not in visited and (s(u, v) in self.clf.essential_edges or s(u, v) in self.clf.subpar_edges)
+            ]
+            for v in neighbors:
+                visited.add(v)
+                reachable.update(dfs(v))
+            return reachable
+
+
+        for vertex in self.graph.vertices:
+            if vertex not in visited:
+                components.append(dfs(vertex))
+        return components

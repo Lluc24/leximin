@@ -128,7 +128,7 @@ class ValidComponent(Component):
             return abs(imp.profit(self.root.v) - self.min_profit_on_left(imp)) / 2
 
     def add_child_at(self, vertex, fc: FundamentalComponent) -> 'ValidComponent':
-        """Attach a new fundamental component below the node containing `vertex`."""
+        """Attach a new fundamental component below the fundamental component containing `vertex`."""
         if vertex in self.root.vertices:
             return ValidComponent(
                 root=self.root,
