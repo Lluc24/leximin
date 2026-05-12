@@ -9,9 +9,9 @@ class BipartiteGraph:
 
     def neighbors_of(self, vertex: int) -> frozenset[int]:
         if vertex in self.u_vertices:
-            return frozenset(v for (u, v) in self.weights if u == vertex)
+            return frozenset(v for u, v in self.weights if u == vertex)
         elif vertex in self.v_vertices:
-            return frozenset(u for (u, v) in self.weights if v == vertex)
+            return frozenset(u for u, v in self.weights if v == vertex)
         else:
             raise ValueError(f"Vertex {vertex} is not in the graph.")
 
@@ -22,12 +22,16 @@ class BipartiteGraph:
             return Fraction(0) # No edge means weight 0
 
     @property
-    def edges(self) -> set[tuple[int, int]]:
-        return set(self.weights.keys())
+    def edges(self) -> frozenset[tuple[int, int]]:
+        return frozenset(self.weights.keys())
 
     @property
-    def vertices(self) -> set[int]:
-        return set(self.u_vertices) | set(self.v_vertices)
+    def vertices(self) -> frozenset[int]:
+        return frozenset(self.u_vertices) | set(self.v_vertices)
+
+    @property
+    def weighted_edges(self) -> frozenset[tuple[int, int, Fraction]]:
+        return frozenset((u, v, w) for (u, v), w in self.weights.items())
 
     def __add__(self, other: tuple[int, int, Fraction]) -> 'BipartiteGraph':
         """Returns a new graph with the given edge added."""
