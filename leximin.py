@@ -63,8 +63,8 @@ class LeximinSolver:
         if delta > 0:
             for vc in self.active:
                 self.imp.apply_rotation(
-                    increasing=vc.increasing_vertices(),
-                    decreasing=vc.decreasing_vertices(),
+                    increasing=vc.increasing_vertices,
+                    decreasing=vc.decreasing_vertices,
                     delta=delta
                 )
             self.clock = new_clock
@@ -132,13 +132,13 @@ class LeximinSolver:
             delta = abs(self.imp.profit(vc.root.v) - vc.min_profit_on_left(self.imp)) / 2
         ev = FullyRepairedEvent(self.clock + delta, vc)
         self._push_event(ev)
-        for u in vc.decreasing_vertices():
+        for u in vc.decreasing_vertices:
             for v in self.graph.neighbors_of(u).difference(vc.vertices):
                 edge = (u, v) if u < v else (v, u)
                 if edge in self.clf.subpar_edges:
                     slack = self.imp.slack(self.graph, *edge)
-                    if any(v in other_vc.decreasing_vertices() for other_vc in self.active):
-                        [other_vc] = [other_vc for other_vc in self.active if v in other_vc.decreasing_vertices()]
+                    if any(v in other_vc.decreasing_vertices for other_vc in self.active):
+                        [other_vc] = [other_vc for other_vc in self.active if v in other_vc.decreasing_vertices]
                         delta2 = other_vc.rotation_to_fully_repair(self.imp)
                         if slack <= 2*min(delta, delta2):
                             ev = TightEdgeEvent(self.clock + slack / 2, edge, vc)
