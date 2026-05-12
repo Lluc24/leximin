@@ -82,3 +82,6 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+.mng/
+.github
