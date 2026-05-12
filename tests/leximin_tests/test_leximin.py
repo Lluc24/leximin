@@ -3,6 +3,7 @@ from imputation import Imputation
 from leximin import LeximinSolver
 from tests.leximin_tests.cases_leximin import LEXIMIN_CASES
 import logging
+from tests.imputation_tests.test_imputation import verify_is_in_core
 
 LOGGER = logging.getLogger("tests.leximin")
 
@@ -21,5 +22,6 @@ def verify_feasibility(graph: BipartiteGraph, imp: Imputation) -> None:
         assert imp.profit(u) >= 0, f"Vertex {u} has negative profit: {imp.profit(u)}"
     for u, v in graph.edges:
         assert imp.slack(graph, u, v) >= 0, f"Edge ({u}, {v}) is not dual feasible: slack={imp.slack(graph, u, v)}"
+    verify_is_in_core(graph, imp)
 
 

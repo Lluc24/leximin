@@ -12,8 +12,32 @@ class LeximinCase(Case[dict[int, Fraction]]):
 
 # Add new examples by appending one more LeximinCase here.
 LEXIMIN_CASES: tuple[LeximinCase, ...] = (
+LeximinCase(
+        name=f"{VIJAY_EXAMPLE_1_GRAPH.name}_leximin_imputation",
+        graph=VIJAY_EXAMPLE_1_GRAPH,
+        expected={
+            0: Fraction(100),
+            1: Fraction(36),
+            2: Fraction(34),
+            3: Fraction(59),
+            4: Fraction(36),
+            5: Fraction(40),
+            6: Fraction(34),
+            7: Fraction(59),
+        },
+    ),
     LeximinCase(
-        name="vijay_example5_leximin_core_imputation",
+        name=f"{VIJAY_EXAMPLE_3_GRAPH.name}_leximin_imputation",
+        graph=VIJAY_EXAMPLE_3_GRAPH,
+        expected={
+            0: Fraction(40),
+            1: Fraction(30),
+            2: Fraction(30),
+            3: Fraction(70),
+        },
+    ),
+    LeximinCase(
+        name=f"{VIJAY_EXAMPLE_5_GRAPH.name}_leximin_imputation",
         graph=VIJAY_EXAMPLE_5_GRAPH,
         initial_imputation=Imputation({
             0: Fraction(20),
@@ -36,29 +60,5 @@ LEXIMIN_CASES: tuple[LeximinCase, ...] = (
             7: Fraction(30),
         },
     ),
-    LeximinCase(
-        name="vijay_example1_leximin_core_imputation",
-        graph=VIJAY_EXAMPLE_1_GRAPH,
-        expected={
-            0: Fraction(40),
-            1: Fraction(30),
-            2: Fraction(30),
-            3: Fraction(70),
-        },
-    ),
-    LeximinCase(
-        name="vijay_example3_leximin_core_imputation",
-        graph=VIJAY_EXAMPLE_3_GRAPH,
-        expected={
-            0: Fraction(100),
-            1: Fraction(36),
-            2: Fraction(34),
-            3: Fraction(59),
-            4: Fraction(36),
-            5: Fraction(40),
-            6: Fraction(34),
-            7: Fraction(59),
-        },
-    )
 )
 

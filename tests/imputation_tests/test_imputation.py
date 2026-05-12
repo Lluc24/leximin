@@ -1,9 +1,13 @@
 import logging
 
 from fractions import Fraction
+from itertools import combinations, chain
 
-from imputation import Imputation
+from graph import BipartiteGraph
+from imputation import Imputation, compute_imputation
+from matching import max_weight_matching
 from tests.imputation_tests.cases_imputation import (
+    IMPUTATION_CORE_CASES,
     IMPUTATION_COPY_CASES,
     IMPUTATION_ESSENTIAL_PROFITS_CASES,
     IMPUTATION_PROFIT_CASES,
@@ -18,6 +22,30 @@ LOGGER = logging.getLogger("tests.imputation")
 def assert_profits(imputation: Imputation, expected: dict[int, Fraction]) -> None:
     for vertex, value in expected.items():
         assert imputation.profit(vertex) == value, f"Unexpected profit for vertex {vertex}"
+
+
+def verify_is_in_core(graph: BipartiteGraph, imputation: Imputation) -> None:
+    vertices = tuple(sorted(graph.vertices))
+    coalitions = chain.from_iterable(combinations(vertices, size) for size in range(len(vertices) + 1))
+    for coalition in coalitions:
+        coalition_set = frozenset(coalition)
+        coalition_u = graph.u_vertices.intersection(coalition_set)
+        coalition_v = graph.v_vertices.intersection(coalition_set)
+        coalition_graph = BipartiteGraph(
+            u_vertices=coalition_u,
+            v_vertices=coalition_v,
+            weights={
+                (u, v): w
+                for (u, v), w in graph.weights.items()
+                if u in coalition_u and v in coalition_v
+            },
+        )
+        coalition_value = max_weight_matching(coalition_graph).weight
+        coalition_profit = sum((imputation.profit(v) for v in coalition_set), Fraction(0))
+        assert coalition_profit >= coalition_value, (
+            f"Coalition {coalition} violates core: "
+            f"profit={coalition_profit}, value={coalition_value}"
+        )
 
 
 def test_profit_returns_expected_values() -> None:
@@ -66,3 +94,8 @@ def test_sorted_essential_profits_uses_classification() -> None:
         imputation = Imputation(case.profits)
         assert imputation.sorted_essential_profits(case.classification) == case.expected
 
+
+def test_compute_imputation_lies_in_core_for_all_coalitions() -> None:
+    for case in IMPUTATION_CORE_CASES:
+        imputation = compute_imputation(case.graph, max_weight_matching(case.graph))
+        verify_is_in_core(case.graph, imputation)

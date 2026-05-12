@@ -3,7 +3,7 @@ from fractions import Fraction
 
 from classification import Classification
 from tests.case import Case
-from tests.graphs import ALL_ONES_2X2_GRAPH, SAMPLE_GRAPH
+from tests.graphs import ALL_ONES_2X2_GRAPH, SAMPLE_GRAPH, VIJAY_EXAMPLE_3_GRAPH
 
 
 @dataclass(frozen=True)
@@ -35,6 +35,9 @@ class ImputationCopyCase(Case[dict[int, Fraction]]):
 class ImputationEssentialProfitsCase(Case[list[Fraction]]):
     profits: dict[int, Fraction]
     classification: Classification
+
+
+ImputationCoreCase = Case[bool]
 
 
 IMPUTATION_PROFIT_CASES: tuple[ImputationProfitCase, ...] = (
@@ -140,3 +143,21 @@ IMPUTATION_ESSENTIAL_PROFITS_CASES: tuple[ImputationEssentialProfitsCase, ...] =
     ),
 )
 
+
+IMPUTATION_CORE_CASES: tuple[ImputationCoreCase, ...] = (
+    ImputationCoreCase(
+        name="sample_2x2_graph",
+        graph=SAMPLE_GRAPH,
+        expected=True,
+    ),
+    ImputationCoreCase(
+        name="all_ones_2x2_graph",
+        graph=ALL_ONES_2X2_GRAPH,
+        expected=True,
+    ),
+    ImputationCoreCase(
+        name="vijay_example_3_graph",
+        graph=VIJAY_EXAMPLE_3_GRAPH,
+        expected=True,
+    ),
+)

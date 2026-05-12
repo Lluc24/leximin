@@ -60,17 +60,6 @@ CLASSIFICATION_TWO_U_TWO_V_ALL_ESSENTIAL_GRAPH = ALL_ONES_2X2_GRAPH
 
 VIJAY_EXAMPLE_1_GRAPH = NamedBipartiteGraph(
     name="vijay_example_1",
-    u_vertices=set_u_vertices(2),
-    v_vertices=set_v_vertices(2, 2),
-    weights={
-        (0, 2): Fraction(70),
-        (1, 3): Fraction(100),
-        (0, 3): Fraction(110),
-    }
-)
-
-VIJAY_EXAMPLE_3_GRAPH = NamedBipartiteGraph(
-    name="vijay_example_3",
     u_vertices=set_u_vertices(4),
     v_vertices=set_v_vertices(4, 4),
     weights={
@@ -80,6 +69,17 @@ VIJAY_EXAMPLE_3_GRAPH = NamedBipartiteGraph(
         (2, 6): Fraction(68),
         (2, 7): Fraction(56),
         (3, 7): Fraction(118),
+    }
+)
+
+VIJAY_EXAMPLE_3_GRAPH = NamedBipartiteGraph(
+    name="vijay_example_3",
+    u_vertices=set_u_vertices(2),
+    v_vertices=set_v_vertices(2, 2),
+    weights={
+        (0, 2): Fraction(70),
+        (1, 3): Fraction(100),
+        (0, 3): Fraction(110),
     }
 )
 
@@ -97,19 +97,3 @@ VIJAY_EXAMPLE_5_GRAPH = NamedBipartiteGraph(
         (3, 7): Fraction(60),
     }
 )
-
-MWM_EXAMPLE_1_VIJAY_GRAPH = NamedBipartiteGraph(
-    name="mwm_example_1_vijay",
-    u_vertices=set_u_vertices(4),
-    v_vertices=set_v_vertices(4, 4),
-    weights={
-        (0, 4): Fraction(136),
-        (0, 5): Fraction(140),
-        (1, 5): Fraction(140),
-        (2, 6): Fraction(68),
-        (2, 7): Fraction(56),
-        (3, 7): Fraction(118),
-    }
-)
-
-MWM_EXAMPLE_3_GRAPH = VIJAY_EXAMPLE_1_GRAPH
