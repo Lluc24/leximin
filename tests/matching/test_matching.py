@@ -1,6 +1,6 @@
 import logging
 from matching import MaxWeightMatching, max_weight_matching
-from tests.cases_mwm import MWM_CASES
+from tests.matching.cases_mwm import MWM_CASES
 from graph import BipartiteGraph
 from fractions import Fraction
 

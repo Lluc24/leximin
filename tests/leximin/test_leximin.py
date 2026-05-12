@@ -1,8 +1,7 @@
-from classification import Classification
 from graph import BipartiteGraph
 from imputation import Imputation
 from leximin import LeximinSolver
-from tests.cases_leximin import LEXIMIN_CASES
+from tests.leximin.cases_leximin import LEXIMIN_CASES
 import logging
 
 LOGGER = logging.getLogger("tests.leximin")

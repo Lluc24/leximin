@@ -1,5 +1,5 @@
 from classification import classify, Classification
-from tests.cases_classification import CLASSIFICATION_CASES
+from tests.classification.cases_classification import CLASSIFICATION_CASES
 
 def test_returns_classification() -> None:
     case = CLASSIFICATION_CASES[0]

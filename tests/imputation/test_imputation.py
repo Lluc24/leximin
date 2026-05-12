@@ -3,7 +3,7 @@ import logging
 from fractions import Fraction
 
 from imputation import Imputation
-from tests.cases_imputation import (
+from tests.imputation.cases_imputation import (
     IMPUTATION_COPY_CASES,
     IMPUTATION_ESSENTIAL_PROFITS_CASES,
     IMPUTATION_PROFIT_CASES,
