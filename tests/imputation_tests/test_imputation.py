@@ -3,7 +3,7 @@ import logging
 from fractions import Fraction
 
 from imputation import Imputation
-from tests.imputation.cases_imputation import (
+from tests.imputation_tests.cases_imputation import (
     IMPUTATION_COPY_CASES,
     IMPUTATION_ESSENTIAL_PROFITS_CASES,
     IMPUTATION_PROFIT_CASES,
@@ -28,10 +28,9 @@ def test_profit_returns_expected_values() -> None:
 
 def test_slack_and_tightness_match_expected_values() -> None:
     for case in IMPUTATION_SLACK_CASES:
-        graph = case.build_graph()
         imputation = Imputation(case.profits)
         for (u, v), expected_slack in case.expected.items():
-            slack = imputation.slack(graph, u, v)
+            slack = imputation.slack(case.graph, u, v)
             LOGGER.info(
                 "case=%s edge=(%s, %s) slack=%s expected=%s",
                 case.name,
@@ -41,7 +40,7 @@ def test_slack_and_tightness_match_expected_values() -> None:
                 expected_slack,
             )
             assert slack == expected_slack, f"Unexpected slack for edge ({u}, {v}) in case {case.name}"
-            assert imputation.is_tight(graph, u, v) is (expected_slack == Fraction(0))
+            assert imputation.is_tight(case.graph, u, v) is (expected_slack == Fraction(0))
 
 
 def test_apply_rotation_updates_profits() -> None:

@@ -3,13 +3,7 @@ from fractions import Fraction
 
 from classification import Classification
 from tests.case import Case
-
-
-SAMPLE_WEIGHTED_EDGES: tuple[tuple[int, int, Fraction], ...] = (
-    (0, 2, Fraction(3, 2)),
-    (1, 2, Fraction(1)),
-    (1, 3, Fraction(5)),
-)
+from tests.graphs import ALL_ONES_2X2_GRAPH, SAMPLE_GRAPH
 
 
 @dataclass(frozen=True)
@@ -46,9 +40,7 @@ class ImputationEssentialProfitsCase(Case[list[Fraction]]):
 IMPUTATION_PROFIT_CASES: tuple[ImputationProfitCase, ...] = (
     ImputationProfitCase(
         name="lookup_initial_profits",
-        n_u=2,
-        n_v=2,
-        weighted_edges=SAMPLE_WEIGHTED_EDGES,
+        graph=SAMPLE_GRAPH,
         profits={
             0: Fraction(3, 2),
             1: Fraction(2),
@@ -68,9 +60,7 @@ IMPUTATION_PROFIT_CASES: tuple[ImputationProfitCase, ...] = (
 IMPUTATION_SLACK_CASES: tuple[ImputationSlackCase, ...] = (
     ImputationSlackCase(
         name="slack_and_tight_edges",
-        n_u=2,
-        n_v=2,
-        weighted_edges=SAMPLE_WEIGHTED_EDGES,
+        graph=SAMPLE_GRAPH,
         profits={
             0: Fraction(3, 2),
             1: Fraction(2),
@@ -89,9 +79,7 @@ IMPUTATION_SLACK_CASES: tuple[ImputationSlackCase, ...] = (
 IMPUTATION_ROTATION_CASES: tuple[ImputationRotationCase, ...] = (
     ImputationRotationCase(
         name="apply_rotation_changes_profits",
-        n_u=2,
-        n_v=2,
-        weighted_edges=SAMPLE_WEIGHTED_EDGES,
+        graph=SAMPLE_GRAPH,
         profits={
             0: Fraction(1),
             1: Fraction(2),
@@ -114,9 +102,7 @@ IMPUTATION_ROTATION_CASES: tuple[ImputationRotationCase, ...] = (
 IMPUTATION_COPY_CASES: tuple[ImputationCopyCase, ...] = (
     ImputationCopyCase(
         name="copy_is_independent_from_original",
-        n_u=2,
-        n_v=2,
-        weighted_edges=SAMPLE_WEIGHTED_EDGES,
+        graph=SAMPLE_GRAPH,
         profits={
             0: Fraction(1, 2),
             1: Fraction(1),
@@ -138,14 +124,7 @@ IMPUTATION_COPY_CASES: tuple[ImputationCopyCase, ...] = (
 IMPUTATION_ESSENTIAL_PROFITS_CASES: tuple[ImputationEssentialProfitsCase, ...] = (
     ImputationEssentialProfitsCase(
         name="sorted_essential_profits_uses_classification",
-        n_u=2,
-        n_v=2,
-        weighted_edges=(
-            (0, 2, Fraction(1)),
-            (0, 3, Fraction(1)),
-            (1, 2, Fraction(1)),
-            (1, 3, Fraction(1)),
-        ),
+        graph=ALL_ONES_2X2_GRAPH,
         profits={
             0: Fraction(4),
             1: Fraction(1),

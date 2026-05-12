@@ -1,6 +1,6 @@
 import logging
 from matching import MaxWeightMatching, max_weight_matching
-from tests.matching.cases_mwm import MWM_CASES
+from tests.matching_tests.cases_mwm import MWM_CASES
 from graph import BipartiteGraph
 from fractions import Fraction
 
@@ -10,15 +10,13 @@ LOGGER = logging.getLogger("tests.mwm")
 
 def test_compute_returns_matching() -> None:
     case = MWM_CASES[0]
-    graph = case.build_graph()
-    matching = max_weight_matching(graph)
+    matching = max_weight_matching(case.graph)
     assert isinstance(matching, MaxWeightMatching)
 
 
 def test_cases_have_expected_mwm() -> None:
     for case in MWM_CASES:
-        graph = case.build_graph()
-        matching = max_weight_matching(graph)
+        matching = max_weight_matching(case.graph)
         LOGGER.info(
             "case=%s expected=%s computed=%s",
             case.name,
