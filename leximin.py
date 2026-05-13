@@ -1,7 +1,6 @@
 """Event-driven solver for computing a leximin core imputation."""
 
 import heapq
-from collections.abc import Callable
 from components import FundamentalComponent, ValidComponent
 from classification import classify
 from events import BinActivationEvent, FullyRepairedEvent, TightEdgeEvent, Event
@@ -10,6 +9,8 @@ from graph import BipartiteGraph
 from imputation import Imputation, compute_imputation
 from itertools import count
 from matching import max_weight_matching
+from utils import s
+
 
 class LeximinSolver:
     """Run Algorithm 1 style event processing until no event remains."""
@@ -41,8 +42,7 @@ class LeximinSolver:
 
     def _initialize(self):
         """Seed bins with essential edges and schedule first activations."""
-        for u, v in self.clf.essential_edges:
-            fc = FundamentalComponent(u, v)
+        for fc in self._get_fundamental_components():
             self.bin_set.add(fc)
             ev = BinActivationEvent(fc.min_profit(self.imp), fc)
             self._push_event(ev)
@@ -178,25 +178,34 @@ class LeximinSolver:
             ev = BinActivationEvent(fc.min_profit(self.imp), fc)
             self._push_event(ev)
 
-    def _dfs_decomposition(self) -> list[set[int]]:
+    def _get_fundamental_components(self) -> list[FundamentalComponent]:
         """Decompose graph into connected components using DFS. Only essential and viable edges are traversed."""
         visited = set()
         components = []
 
-        def dfs(u: int) -> set[int]:
-            reachable = {u}
-            s: Callable[[int, int], tuple[int, int]] = lambda x, y: (x, y) if x < y else (y, x)
+        def dfs(u: int) -> frozenset[int]:
+            reachable = frozenset([u])
             neighbors = [
                 v for v in self.graph.neighbors_of(u)
-                if v not in visited and (s(u, v) in self.clf.essential_edges or s(u, v) in self.clf.subpar_edges)
+                if v not in visited and (s(u, v) in self.clf.essential_edges or s(u, v) in self.clf.viable_edges)
             ]
             for v in neighbors:
                 visited.add(v)
-                reachable.update(dfs(v))
+                reachable |= dfs(v)
             return reachable
-
 
         for vertex in self.graph.vertices:
             if vertex not in visited:
                 components.append(dfs(vertex))
-        return components
+
+        fcs = []
+        for component in components:
+            if all(vertex in self.clf.essential_u | self.clf.essential_v for vertex in component):
+                # If all vertices in the component are essential, then it is a fundamental component
+                fcs.append(
+                    FundamentalComponent(
+                        U=component.intersection(self.clf.essential_u),
+                        V=component.intersection(self.clf.essential_v)
+                    )
+                )
+        return fcs

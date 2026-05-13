@@ -44,7 +44,7 @@ class Imputation:
 
     def sorted_essential_profits(self, clf: Classification) -> list[Fraction]:
         """Return essential-vertex profits sorted increasingly."""
-        return sorted(self._profits[v] for v in clf.essential_vertices)
+        return sorted(self._profits[v] for v in clf.essential_u | clf.essential_v)
 
     def __eq__(self, other):
         """Compare by exact profit map."""

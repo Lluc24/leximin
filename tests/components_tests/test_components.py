@@ -1,9 +1,7 @@
 """Tests for component tree operations used by the leximin solver."""
 
 from fractions import Fraction
-
 import pytest
-
 from components import FundamentalComponent, ValidComponent
 from tests.components_tests.cases_components import (
     BASE_COMPONENT,
@@ -17,7 +15,10 @@ from tests.components_tests.cases_components import (
 
 
 def test_fundamental_component_profit_helpers() -> None:
-    fc = FundamentalComponent(0, 1)
+    fc = FundamentalComponent(
+        U=frozenset({0}),
+        V=frozenset({1}),
+    )
     imp = BASE_IMPUTATION.copy()
     imp.set_profit(0, Fraction(3))
     imp.set_profit(1, Fraction(7))
@@ -57,9 +58,20 @@ def test_valid_component_decompose_remainder() -> None:
 
 def test_valid_component_add_child_at_recurses_to_matching_child() -> None:
     component = ValidComponent(
-        root=FundamentalComponent(0, 3),
+        root=FundamentalComponent(
+            U=frozenset({0}),
+            V=frozenset({3}),
+        ),
         rotation="CW",
-        children=frozenset({ValidComponent(root=FundamentalComponent(1, 4), rotation="CW")}),
+        children=frozenset({
+            ValidComponent(
+                root=FundamentalComponent(
+                    U=frozenset({1}),
+                    V=frozenset({4}),
+                ),
+                rotation="CW"
+            )
+        }),
     )
     updated = component.add_child_at(1, CHILD_EXCLUDE)
 

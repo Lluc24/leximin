@@ -2,8 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Generic, TypeVar
-
-from tests.graphs import NamedBipartiteGraph
+from tests.graphs import TestBipartiteGraph
 
 
 TExpected = TypeVar("TExpected")
@@ -14,5 +13,5 @@ class Case(Generic[TExpected]):
     """Base test case with graph input and expected output."""
 
     name: str
-    graph: NamedBipartiteGraph
+    graph: TestBipartiteGraph
     expected: TExpected

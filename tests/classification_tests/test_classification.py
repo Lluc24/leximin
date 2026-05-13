@@ -1,19 +1,23 @@
 """Tests for the essential/viable/subpar classification routine."""
-
+import logging
 from classification import classify, Classification
-from tests.classification_tests.cases_classification import CLASSIFICATION_CASES
+from tests.graphs import TestBipartiteGraph, HANDMADE_GRAPH
+
+LOGGER = logging.getLogger("tests.classification")
+
+GRAPHS: tuple[TestBipartiteGraph, ...] = (
+    HANDMADE_GRAPH,
+)
 
 def test_returns_classification() -> None:
-    case = CLASSIFICATION_CASES[0]
-    classification = classify(case.graph)
+    graph = GRAPHS[0]
+    classification = classify(graph)
     assert isinstance(classification, Classification), "Expected classify to return an instance of Classification"
 
 def test_classification_cases_match_expected() -> None:
-    for case in CLASSIFICATION_CASES:
-        assert classify(case.graph) == case.expected, f"Unexpected classification for case: {case.name}"
-
-
-def test_essential_vertices_property_matches_essential_parts() -> None:
-    for case in CLASSIFICATION_CASES:
-        classification = classify(case.graph)
-        assert classification.essential_vertices == classification.essential_u | classification.essential_v
+    for graph in GRAPHS:
+        expected = graph.classification
+        classification = classify(graph)
+        LOGGER.info("Testing graph %s: computed classification %s", graph.name, classification)
+        LOGGER.info("Testing graph %s: expected classification %s", graph.name, expected)
+        assert classify(graph) == expected, f"Unexpected classification for case: {graph.name}"

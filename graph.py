@@ -2,6 +2,8 @@
 
 from fractions import Fraction
 from dataclasses import dataclass
+import matplotlib.pyplot as plt
+import networkx as nx
 
 @dataclass(frozen=True)
 class BipartiteGraph:
@@ -104,3 +106,21 @@ class BipartiteGraph:
             v_vertices=new_v_vertices,
             weights=self.weights
         )
+
+    def plot(self) -> None:
+        """Plot the bipartite graph using NetworkX layout."""
+        g = nx.Graph()
+        g.add_nodes_from(self.u_vertices, bipartite=0)
+        g.add_nodes_from(self.v_vertices, bipartite=1)
+        for (u, v), w in self.weights.items():
+            g.add_edge(u, v, weight=w)
+
+        plt.figure(figsize=(8, 6))
+        pos = nx.bipartite_layout(g, self.u_vertices)
+        nx.draw(g, pos=pos, with_labels=True)
+        weights = nx.get_edge_attributes(g, 'weight')
+        if weights:
+            nx.draw_networkx_edge_labels(
+                g, pos, edge_labels=weights, label_pos=0.1
+            )
+        plt.show()

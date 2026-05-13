@@ -20,11 +20,6 @@ class Classification:
     viable_edges: frozenset[tuple[int, int]] = field(default_factory=frozenset)
     subpar_edges: frozenset[tuple[int, int]] = field(default_factory=frozenset)
 
-    @property
-    def essential_vertices(self) -> frozenset[int]:
-        """Return all vertices that are essential in every maximum matching."""
-        return self.essential_u | self.essential_v
-
 
 def classify(graph: BipartiteGraph) -> Classification:
     """Compute edge/vertex classes from matching-sensitivity tests."""

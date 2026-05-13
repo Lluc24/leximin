@@ -18,18 +18,9 @@ class Component(ABC):
 
     @property
     @abstractmethod
-    def left(self) -> frozenset[int]:
-        ...
-
-    @property
-    @abstractmethod
-    def right(self) -> frozenset[int]:
-        ...
-
-    @property
     def vertices(self) -> frozenset[int]:
         """Return all vertices present in the component."""
-        return self.left.union(self.right)
+        ...
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Component) and self.uid == other.uid
@@ -49,36 +40,41 @@ class Component(ABC):
 class FundamentalComponent(Component):
     """A single essential edge `(u, v)` that seeds a valid component."""
 
-    u: int
-    v: int
+    U: frozenset[int] = field(default_factory=frozenset)
+    V: frozenset[int] = field(default_factory=frozenset)
 
     @property
-    def left(self) -> frozenset[int]:
-        return frozenset({self.u})
+    def vertices(self) -> frozenset[int]:
+        """Return the two vertices in this fundamental component."""
+        return self.U.union(self.V)
 
-    @property
-    def right(self) -> frozenset[int]:
-        return frozenset({self.v})
+    def min_left(self, imp: Imputation) -> Fraction:
+        """Return the minimum profit on the left side."""
+        return min(imp.profit(u) for u in self.U)
+
+    def min_right(self, imp: Imputation) -> Fraction:
+        """Return the minimum profit on the right side."""
+        return min(imp.profit(v) for v in self.V)
 
     def has_min_on_left(self, imp: Imputation) -> bool:
-        """Return True if the left endpoint has the minimum current profit."""
-        return imp.profit(self.u) <= imp.profit(self.v)
+        """Return True if the left side has the minimum current profit."""
+        return self.min_left(imp) <= self.min_right(imp)
 
     def has_min_on_right(self, imp: Imputation) -> bool:
-        """Return True if the right endpoint has the minimum current profit."""
-        return imp.profit(self.v) <= imp.profit(self.u)
+        """Return True if the right side has the minimum current profit."""
+        return self.min_right(imp) <= self.min_left(imp)
 
     def has_min_equal(self, imp: Imputation) -> bool:
-        """Return True when both endpoints have the same profit."""
-        return imp.profit(self.u) == imp.profit(self.v)
+        """Return True when both sides have the same profit."""
+        return self.min_left(imp) == self.min_right(imp)
 
     def min_profit(self, imp: Imputation) -> Fraction:
-        """Return the lower endpoint profit."""
-        return min(imp.profit(self.u), imp.profit(self.v))
+        """Return the lower side profit."""
+        return min(self.min_left(imp), self.min_right(imp))
 
     def rotation_to_fully_repair(self, imp: Imputation) -> Fraction:
-        """Return the rotation needed to equalize endpoint profits."""
-        return abs(imp.profit(self.u) - imp.profit(self.v)) / 2
+        """Return the rotation needed to equalize side profits."""
+        return abs(self.min_left(imp) - self.min_right(imp)) / 2
 
 
 @dataclass(frozen=True, eq=False)
@@ -90,12 +86,17 @@ class ValidComponent(Component):
     children: frozenset['ValidComponent'] = field(default_factory=frozenset)
 
     @property
-    def left(self) -> frozenset[int]:
-        return self.root.left.union(*(child.left for child in self.children))
+    def U(self) -> frozenset[int]:
+        return self.root.U.union(*(child.U for child in self.children))
 
     @property
-    def right(self) -> frozenset[int]:
-        return self.root.right.union(*(child.right for child in self.children))
+    def V(self) -> frozenset[int]:
+        return self.root.V.union(*(child.V for child in self.children))
+
+    @property
+    def vertices(self) -> frozenset[int]:
+        """Return all vertices in this component."""
+        return self.U | self.V
 
     @property
     def all_fcs(self) -> frozenset[FundamentalComponent]:
@@ -105,20 +106,20 @@ class ValidComponent(Component):
     @property
     def increasing_vertices(self) -> frozenset[int]:
         """Return vertices whose profits increase during a rotation step."""
-        return self.left if self.rotation == 'CW' else self.right
+        return self.U if self.rotation == 'CW' else self.V
 
     @property
     def decreasing_vertices(self) -> frozenset[int]:
         """Return vertices whose profits decrease during a rotation step."""
-        return self.right if self.rotation == 'CW' else self.left
+        return self.V if self.rotation == 'CW' else self.U
 
     def min_profit_on_left(self, imp: Imputation) -> Fraction:
         """Return the minimum profit over left-side vertices."""
-        return min(imp.profit(v) for v in self.left)
+        return min(imp.profit(v) for v in self.U)
 
     def min_profit_on_right(self, imp: Imputation) -> Fraction:
         """Return the minimum profit over right-side vertices."""
-        return min(imp.profit(v) for v in self.right)
+        return min(imp.profit(v) for v in self.V)
 
     def rotation_to_fully_repair(self, imp: Imputation) -> Fraction:
         """Return the clock delta required to fully repair this component."""
@@ -147,7 +148,7 @@ class ValidComponent(Component):
 
     def compute_min_sub1(self, imp: Imputation) -> 'ValidComponent':
         """Return the minimal subtree for the full-repair event (Sub1)."""
-        profit = imp.profit(self.root.u if self.rotation == 'CW' else self.root.v)
+        profit = self.root.min_profit(imp)
         fcs = {self.root}.union(self._get_descendants_with_profit(imp, profit))
         return self._compute_min_tree(fcs)
 
