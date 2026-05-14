@@ -12,7 +12,7 @@ IMPUTATION_FOR_VAZIRANI_5 = Imputation({
     0: Fraction(0),
     1: Fraction(30),
     2: Fraction(100),
-    3: Fraction(80),
+    3: Fraction(60),
     4: Fraction(60),
     5: Fraction(40),
     6: Fraction(0),

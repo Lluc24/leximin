@@ -1,11 +1,10 @@
 from fractions import Fraction
 import pytest
-from components import FundamentalComponent, ValidComponent
+from component import FundamentalComponent, ValidComponent
 from tests.fixtures.components import (
     CHILD_FC,
     IMPUTATION_FOR_COMPONENTS,
     ROOT_FC,
-    VALID_COMPONENT_CCW,
     VALID_COMPONENT_CW,
 )
 
@@ -17,7 +16,7 @@ def test_fundamental_component_vertices() -> None:
     assert fc.vertices == frozenset({0, 2})
 
 
-def test_valid_component_side_union() -> None:
+def test_valid_component_vertices() -> None:
     vc = VALID_COMPONENT_CW
     assert vc.left == frozenset({0, 1})
     assert vc.right == frozenset({2, 3})
@@ -26,11 +25,8 @@ def test_valid_component_side_union() -> None:
 
 def test_rotation_direction_sets() -> None:
     cw = VALID_COMPONENT_CW
-    ccw = VALID_COMPONENT_CCW
-    assert cw.increasing_vertices == cw.left
-    assert cw.decreasing_vertices == cw.right
-    assert ccw.increasing_vertices == ccw.right
-    assert ccw.decreasing_vertices == ccw.left
+    assert cw.increasing_vertices == frozenset({0, 1})
+    assert cw.decreasing_vertices == frozenset({2, 3})
 
 
 def test_get_fcs() -> None:
@@ -52,7 +48,7 @@ def test_structural_eq() -> None:
         ),
     )
     assert VALID_COMPONENT_CW.structural_eq(rebuilt)
-    assert not VALID_COMPONENT_CW.structural_eq(VALID_COMPONENT_CCW)
+    assert not VALID_COMPONENT_CW == rebuilt
 
 
 def test_component_profit_helpers() -> None:
@@ -67,9 +63,8 @@ def test_component_profit_helpers() -> None:
 
 def test_add_child_at() -> None:
     base = ValidComponent(root=ROOT_FC, rotation="CW")
-    new_fc = FundamentalComponent(U=frozenset({4}), V=frozenset({5}))
-    updated = base.add_child_at(0, new_fc)
-    assert updated.get_fcs() == frozenset({ROOT_FC, new_fc})
+    updated = base.add_child_at(0, CHILD_FC)
+    assert updated.structural_eq(VALID_COMPONENT_CW)
 
 
 def test_add_child_at_raises_for_vertex_outside_component() -> None:

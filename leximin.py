@@ -1,7 +1,7 @@
 """Event-driven solver for computing a leximin core imputation."""
 
 import heapq
-from components import FundamentalComponent, ValidComponent
+from component import FundamentalComponent, ValidComponent
 from classification import classify
 from events import BinActivationEvent, FullyRepairedEvent, TightEdgeEvent, Event
 from fractions import Fraction

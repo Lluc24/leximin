@@ -2,8 +2,7 @@
 
 from dataclasses import dataclass, field
 from fractions import Fraction
-
-from components import FundamentalComponent, ValidComponent
+from component import FundamentalComponent, ValidComponent
 
 
 @dataclass

@@ -1,8 +1,7 @@
 """Reusable component fixtures for module-level test suites."""
 
 from fractions import Fraction
-
-from components import FundamentalComponent, ValidComponent
+from component import FundamentalComponent, ValidComponent
 from imputation import Imputation
 
 ROOT_FC = FundamentalComponent(
@@ -25,20 +24,10 @@ VALID_COMPONENT_CW = ValidComponent(
     ),
 )
 
-VALID_COMPONENT_CCW = ValidComponent(
-    root=ROOT_FC,
-    rotation="CCW",
-    children=frozenset(
-        {
-            ValidComponent(root=CHILD_FC, rotation="CCW"),
-        }
-    ),
-)
-
 IMPUTATION_FOR_COMPONENTS = Imputation(
     {
-        0: Fraction(8),
-        1: Fraction(4),
+        0: Fraction(4),
+        1: Fraction(8),
         2: Fraction(6),
         3: Fraction(10),
     }

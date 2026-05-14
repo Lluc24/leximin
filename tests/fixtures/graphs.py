@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from fractions import Fraction
-from components import FundamentalComponent
+from component import FundamentalComponent
 from graph import BipartiteGraph
 from imputation import Imputation
 from utils import set_u_vertices, set_v_vertices
