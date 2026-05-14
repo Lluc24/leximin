@@ -25,7 +25,7 @@ class LeximinSolver:
         self.frozen: set[int] = set()
         self.fully_repaired: set[int] = set()
 
-        self.imp: Imputation = imp or compute_imputation(graph, max_weight_matching(graph))
+        self.imp: Imputation = imp or compute_imputation(graph, max_weight_matching(graph.weights))
         self.clock: Fraction = Fraction(0)
         self.pq: list[tuple[Fraction, int, int, Event]] = []
         self.seq = count()
@@ -97,13 +97,9 @@ class LeximinSolver:
         """Finalize one valid component and return its remainders to bins."""
         vc = event.vc
         self.active.remove(vc)
-        min_sub = vc.compute_min_sub1(self.imp)
-        remainder_fcs = vc.decompose_remainder(min_sub)
+        min_sub: ValidComponent = vc.compute_min_sub1(self.imp)
         self.fully_repaired.update(min_sub.vertices)
-        for fc in remainder_fcs:
-            self.bin_set.add(fc)
-            ev = BinActivationEvent(clock=fc.min_profit(self.imp), fc=fc)
-            self._push_event(ev)
+        self._add_remainders_to_bin(vc, min_sub)
 
     def _on_tight_edge(self, event: TightEdgeEvent) -> None:
         """Handle a tight subpar edge according to current status of its endpoint."""
@@ -139,21 +135,18 @@ class LeximinSolver:
 
     def _schedule_events_for(self, vc: ValidComponent) -> None:
         """Schedule full-repair and tight-edge events for an active component."""
-        if vc.rotation == 'CW':
-            delta = abs(self.imp.profit(vc.root.u) - vc.min_profit_on_right(self.imp)) / 2
-        else:
-            delta = abs(self.imp.profit(vc.root.v) - vc.min_profit_on_left(self.imp)) / 2
+        delta = vc.rotation_to_fully_repair(self.imp)
         ev = FullyRepairedEvent(self.clock + delta, vc)
         self._push_event(ev)
         for u in vc.decreasing_vertices:
             for v in self.graph.neighbors_of(u).difference(vc.vertices):
-                edge = (u, v) if u < v else (v, u)
+                edge = s(u, v)
                 if edge in self.clf.subpar_edges:
                     slack = self.imp.slack(self.graph, *edge)
                     if any(v in other_vc.decreasing_vertices for other_vc in self.active):
                         # The other endpoint is also decreasing
                         [other_vc] = [other_vc for other_vc in self.active if v in other_vc.decreasing_vertices]
-                        delta2 = other_vc.rotation_to_fully_repair(self.imp)
+                        delta2 = other_vc.rotation_to_fully_repair2(self.imp)
                         if slack <= 2*min(delta, delta2):
                             # Both components are being repaired, so slack decreases at rate 2
                             # If it is less than two times the smaller delta, then the edge will become tight before
@@ -161,8 +154,8 @@ class LeximinSolver:
                             ev = TightEdgeEvent(self.clock + slack / 2, edge, vc)
                             self._push_event(ev)
                         elif slack < min(delta, delta2) + max(delta, delta2):
-                            # Max is the min plus the positive difference, so it is checking if slack is less than two
-                            # times the smaller delta but more than two times the smaller delta plus the positive
+                            # Max is the min plus the positive difference, so it is checking if slack is more than two
+                            # times the smaller delta but less than two times the smaller delta plus the positive
                             # difference
                             ev = TightEdgeEvent(self.clock + slack - min(delta, delta2), edge, vc)
                             self._push_event(ev)

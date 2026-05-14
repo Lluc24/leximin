@@ -2,8 +2,12 @@
 
 from fractions import Fraction
 from dataclasses import dataclass
+from itertools import product
 import matplotlib.pyplot as plt
 import networkx as nx
+from matching import max_weight_matching
+from utils import subsets
+
 
 @dataclass(frozen=True)
 class BipartiteGraph:
@@ -13,6 +17,21 @@ class BipartiteGraph:
     v_vertices: frozenset[int]  # IDs n_u to n_v - 1
     weights: dict[tuple[int, int], Fraction]  # (u, v) -> weight
 
+    @property
+    def vertices(self) -> frozenset[int]:
+        """Return all vertices in the graph."""
+        return self.u_vertices | self.v_vertices
+
+    @property
+    def edges(self) -> frozenset[tuple[int, int]]:
+        """Return all edges in the graph."""
+        return frozenset(self.weights.keys())
+
+    @property
+    def weighted_edges(self) -> frozenset[tuple[int, int, Fraction]]:
+        """Return all edges with their weights."""
+        return frozenset((u, v, w) for (u, v), w in self.weights.items())
+
     def neighbors_of(self, vertex: int) -> frozenset[int]:
         """Return all neighbors of `vertex` on the opposite side of the bipartition."""
         if vertex in self.u_vertices:
@@ -21,41 +40,6 @@ class BipartiteGraph:
             return frozenset(u for u, v in self.weights if v == vertex)
         else:
             raise ValueError(f"Vertex {vertex} is not in the graph.")
-
-    def weight(self, u: int, v: int) -> Fraction:
-        """Return edge weight, defaulting to zero for missing edges."""
-        if (u, v) in self.weights:
-            return self.weights[(u, v)]
-        else:
-            return Fraction(0)  # No edge means weight 0
-
-    @property
-    def edges(self) -> frozenset[tuple[int, int]]:
-        """Return all explicit edges."""
-        return frozenset(self.weights.keys())
-
-    @property
-    def vertices(self) -> frozenset[int]:
-        """Return all vertices across both sides."""
-        return frozenset(self.u_vertices) | set(self.v_vertices)
-
-    @property
-    def weighted_edges(self) -> frozenset[tuple[int, int, Fraction]]:
-        """Return all edges together with their weights."""
-        return frozenset((u, v, w) for (u, v), w in self.weights.items())
-
-    def __add__(self, other: tuple[int, int, Fraction]) -> 'BipartiteGraph':
-        """Returns a new graph with the given edge added."""
-        u, v, w = other
-        if u not in self.u_vertices or v not in self.v_vertices:
-            raise ValueError(f"Vertices {u} and {v} must be in the graph.")
-        new_weights = self.weights.copy()
-        new_weights[(u, v)] = w
-        return BipartiteGraph(
-            u_vertices=self.u_vertices,
-            v_vertices=self.v_vertices,
-            weights=new_weights
-        )
 
     def __sub__(self, other: tuple[int, int] | int) -> 'BipartiteGraph':
         """Return a new graph with one edge or one vertex removed."""
@@ -85,28 +69,6 @@ class BipartiteGraph:
         else:
             raise ValueError("Invalid operand for subtraction. Must be an edge tuple or a vertex ID.")
 
-    def add_vertex_to_u(self, vertex: int) -> 'BipartiteGraph':
-        """Returns a new graph with the given vertex added to U."""
-        if vertex in self.u_vertices or vertex in self.v_vertices:
-            raise ValueError(f"Vertex {vertex} already exists in the graph.")
-        new_u_vertices = self.u_vertices | frozenset({vertex})
-        return BipartiteGraph(
-            u_vertices=new_u_vertices,
-            v_vertices=self.v_vertices,
-            weights=self.weights
-        )
-
-    def add_vertex_to_v(self, vertex: int) -> 'BipartiteGraph':
-        """Returns a new graph with the given vertex added to V."""
-        if vertex in self.u_vertices or vertex in self.v_vertices:
-            raise ValueError(f"Vertex {vertex} already exists in the graph.")
-        new_v_vertices = self.v_vertices | frozenset({vertex})
-        return BipartiteGraph(
-            u_vertices=self.u_vertices,
-            v_vertices=new_v_vertices,
-            weights=self.weights
-        )
-
     def plot(self) -> None:
         """Plot the bipartite graph using NetworkX layout."""
         g = nx.Graph()
@@ -124,3 +86,21 @@ class BipartiteGraph:
                 g, pos, edge_labels=weights, label_pos=0.1
             )
         plt.show()
+
+    def is_imputation_in_core(self, profits: dict[int, Fraction]) -> bool:
+        """Assert that every coalition receives at least its matching value."""
+        for coalition in subsets(self.vertices):
+            coalition_set = frozenset(coalition)
+            coalition_u = self.u_vertices.intersection(coalition_set)
+            coalition_v = self.v_vertices.intersection(coalition_set)
+            # Coalition value is evaluated on the induced bipartite subgraph.
+            weights={
+                (u, v): self.weights[(u, v)]
+                for u, v in product(coalition_u, coalition_v)
+                if (u, v) in self.weights
+            }
+            coalition_value = max_weight_matching(weights).weight
+            coalition_profit = sum((profits[v] for v in coalition_set), Fraction(0))
+            if coalition_profit < coalition_value:
+                return False
+        return True

@@ -23,12 +23,12 @@ class Classification:
 
 def classify(graph: BipartiteGraph) -> Classification:
     """Compute edge/vertex classes from matching-sensitivity tests."""
-    matching = max_weight_matching(graph)
+    matching = max_weight_matching(graph.weights)
 
     essential_edges = frozenset()
     for edge in graph.edges:
         tmp_graph = graph - edge
-        tmp_matching = max_weight_matching(tmp_graph)
+        tmp_matching = max_weight_matching(tmp_graph.weights)
         if tmp_matching.weight < matching.weight:
             essential_edges |= {edge}
 
@@ -36,8 +36,8 @@ def classify(graph: BipartiteGraph) -> Classification:
     viable_edges = frozenset()
     for u, v in subpar_edges.copy():
         tmp_graph = graph - u - v
-        tmp_matching = max_weight_matching(tmp_graph)
-        if tmp_matching.weight == matching.weight - graph.weight(u, v):
+        tmp_matching = max_weight_matching(tmp_graph.weights)
+        if tmp_matching.weight == matching.weight - graph.weights[u, v]:
             viable_edges |= {(u, v)}
             subpar_edges -= {(u, v)}
 
@@ -47,10 +47,10 @@ def classify(graph: BipartiteGraph) -> Classification:
         essential = frozenset()
         for vtx in vertices_set:
             tmp_g = graph - vtx
-            tmp_mwm = max_weight_matching(tmp_g)
+            tmp_mwm = max_weight_matching(tmp_g.weights)
             if tmp_mwm.weight < matching.weight:
                 essential |= {vtx}
-        viable = frozenset(u if u_vertices else v for u, v in viable_edges) - essential
+        viable = frozenset(u_ if u_vertices else v_ for u_, v_ in viable_edges) - essential
         subpar = vertices_set - essential - viable
         return essential, viable, subpar
 
