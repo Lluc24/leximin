@@ -1,10 +1,13 @@
 """Core-imputation representation and LP-based initialization routine."""
 
 from fractions import Fraction
-from pulp import LpMaximize, LpProblem, LpVariable, lpSum, value
+import logging
+from pulp import LpMaximize, LpProblem, LpStatus, LpVariable, lpSum, value
 from dataclasses import dataclass, field
 from graph import BipartiteGraph
 from matching import MaxWeightMatching
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -31,6 +34,12 @@ class Imputation:
 
 def compute_imputation(graph: BipartiteGraph, mwm: MaxWeightMatching) -> Imputation:
     """Solve the dual LP to obtain one core imputation consistent with `mwm`."""
+    LOGGER.info(
+        "Computing initial imputation from LP (|V|=%d, |E|=%d, |M|=%d)",
+        len(graph.vertices),
+        len(graph.edges),
+        len(mwm.matching),
+    )
     prob = LpProblem("Imputation", LpMaximize)
     profits = {v: LpVariable(f"profit_{v}", lowBound=0) for v in graph.vertices}
     prob += lpSum(profits[v] for v in graph.vertices)
@@ -43,9 +52,12 @@ def compute_imputation(graph: BipartiteGraph, mwm: MaxWeightMatching) -> Imputat
         prob += (profits[u] + profits[v] == graph.weights[u, v], f"MatchingEdge_{u}_{v}")
 
     prob.solve()
+    status = LpStatus.get(prob.status, f"status={prob.status}")
+    LOGGER.debug("LP solved with status: %s", status)
 
     imputation = Imputation({
         v: Fraction(str(value(profits[v]))).limit_denominator(10_000)
         for v in graph.vertices
     })
+    LOGGER.info("Initial imputation ready: %s", imputation)
     return imputation

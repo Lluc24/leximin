@@ -21,42 +21,6 @@ class TestBipartiteGraph(BipartiteGraph):
     fcs: set[FundamentalComponent] = field(default_factory=set, repr=False)
 
 
-"""
-CLASSIFICATION_SINGLE_U_TWO_V_ALL_VIABLE_GRAPH = TestBipartiteGraph(
-    name="single_u_two_v_all_viable",
-    u_vertices=set_u_vertices(1),
-    v_vertices=set_v_vertices(1, 2),
-    weights={
-        (0, 1): Fraction(1),
-        (0, 2): Fraction(1),
-    }
-)
-
-CLASSIFICATION_SINGLE_U_TWO_V_WITH_DELTA_DIFFERENCE_GRAPH = TestBipartiteGraph(
-    name="single_u_two_v_with_delta_difference",
-    u_vertices=set_u_vertices(1),
-    v_vertices=set_v_vertices(1, 2),
-    weights={
-        (0, 1): Fraction(1),
-        (0, 2): Fraction(101, 100),
-    }
-)
-
-ALL_ONES_2X2_GRAPH = TestBipartiteGraph(
-    name="all_ones_2x2",
-    u_vertices=set_u_vertices(2),
-    v_vertices=set_v_vertices(2, 2),
-    weights={
-        (0, 2): Fraction(1),
-        (0, 3): Fraction(1),
-        (1, 2): Fraction(1),
-        (1, 3): Fraction(1),
-    }
-)
-
-CLASSIFICATION_TWO_U_TWO_V_ALL_ESSENTIAL_GRAPH = ALL_ONES_2X2_GRAPH
-"""
-
 VAZIRANI_1 = TestBipartiteGraph(
     name="vazirani_1",
     u_vertices=set_u_vertices(4),

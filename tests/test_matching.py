@@ -6,6 +6,7 @@ LOGGER = logging.getLogger("test_matching")
 
 def test_max_weight_matching():
     for graph in ALL_GRAPHS:
+        LOGGER.info("Starting graph case: %s", graph.name)
         expected_mwm = graph.matching
         computed_mwm = max_weight_matching(graph.weights)
         LOGGER.info("Graph %s: expected MWM weight %s", graph.name, expected_mwm.weight)
@@ -20,4 +21,3 @@ def test_max_weight_matching():
             LOGGER.info("Graph %s: expected MWM matching %s", graph.name, expected_mwm.matching)
             LOGGER.info("Graph %s: computed MWM matching %s", graph.name, computed_mwm.matching)
             assert computed_mwm.matching == expected_mwm.matching, f"Expected MWM {expected_mwm.matching} but got {computed_mwm.matching} for graph {graph.name}"
-

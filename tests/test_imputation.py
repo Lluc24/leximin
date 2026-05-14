@@ -1,11 +1,15 @@
 from fractions import Fraction
+import logging
 from tests.fixtures.graphs import ALL_GRAPHS, VAZIRANI_3
 from imputation import compute_imputation
 from tests.fixtures.imputations import IMPUTATION_FOR_VAZIRANI_3
 
+LOGGER = logging.getLogger("tests.imputation")
+
 
 def test_compute_imputation_in_core():
     for graph in ALL_GRAPHS:
+        LOGGER.info("Starting graph case: %s", graph.name)
         mwm = graph.matching
         imp = compute_imputation(graph, mwm)
         assert graph.is_imputation_in_core(imp.profits), f"Imputation {imp} not in core for graph {graph.name}"

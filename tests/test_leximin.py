@@ -13,6 +13,7 @@ LOGGER = logging.getLogger("tests.leximin")
 
 def test_returns_expected_leximin_imputation() -> None:
     for graph in ALL_GRAPHS:
+        LOGGER.info("Starting graph case: %s", graph.name)
         solver = LeximinSolver(graph)
         actual_imp = solver.solve()
         LOGGER.info("Graph %s: computed imputation %s", graph.name, actual_imp)
