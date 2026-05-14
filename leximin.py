@@ -146,7 +146,7 @@ class LeximinSolver:
                     if any(v in other_vc.decreasing_vertices for other_vc in self.active):
                         # The other endpoint is also decreasing
                         [other_vc] = [other_vc for other_vc in self.active if v in other_vc.decreasing_vertices]
-                        delta2 = other_vc.rotation_to_fully_repair2(self.imp)
+                        delta2 = other_vc.rotation_to_fully_repair(self.imp)
                         if slack <= 2*min(delta, delta2):
                             # Both components are being repaired, so slack decreases at rate 2
                             # If it is less than two times the smaller delta, then the edge will become tight before
@@ -158,6 +158,14 @@ class LeximinSolver:
                             # times the smaller delta but less than two times the smaller delta plus the positive
                             # difference
                             ev = TightEdgeEvent(self.clock + slack - min(delta, delta2), edge, vc)
+                            self._push_event(ev)
+                    elif any(v in other_vc.increasing_vertices for other_vc in self.active):
+                        # The other endpoint is increasing, but for how much time will it be increasing?
+                        [other_vc] = [other_vc for other_vc in self.active if v in other_vc.increasing_vertices]
+                        delta2 = other_vc.rotation_to_fully_repair(self.imp)
+                        if slack + delta2 < delta:
+                            # The edge will become tight before the source component is fully repaired
+                            ev = TightEdgeEvent(self.clock + slack + delta2, edge, vc)
                             self._push_event(ev)
                     elif slack < delta:
                         ev = TightEdgeEvent(self.clock + slack, edge, vc)

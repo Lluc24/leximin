@@ -163,11 +163,11 @@ VAZIRANI_5 = TestBipartiteGraph(
         (2, 5): Fraction(80),
         (2, 6): Fraction(100),
         (3, 6): Fraction(60),
-        (3, 7): Fraction(80),
+        (3, 7): Fraction(60),
     },
     degenerate=False,
     matching=MaxWeightMatching(
-        weight=Fraction(310),
+        weight=Fraction(290),
         matching=frozenset({(0, 4), (1, 5), (2, 6), (3, 7)}),
     ),
     classification=Classification(
@@ -231,8 +231,8 @@ SANTAMARIA_1 = TestBipartiteGraph(
     leximin_imp=Imputation(
         {
             0: Fraction(3, 4),
-            1: Fraction(3, 4),
-            2: Fraction(5, 2),
+            1: Fraction(5, 2),
+            2: Fraction(3, 4),
             3: Fraction(5, 2),
         }
     ),

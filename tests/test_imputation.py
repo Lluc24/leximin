@@ -3,6 +3,7 @@ from tests.fixtures.graphs import ALL_GRAPHS, VAZIRANI_3
 from imputation import compute_imputation
 from tests.fixtures.imputations import IMPUTATION_FOR_VAZIRANI_3
 
+
 def test_compute_imputation_in_core():
     for graph in ALL_GRAPHS:
         mwm = graph.matching

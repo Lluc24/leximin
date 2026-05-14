@@ -78,6 +78,9 @@ class FundamentalComponent(Component):
         """Return True when two fundamental components have the same vertex sets."""
         return isinstance(other, FundamentalComponent) and self.left == other.left and self.right == other.right
 
+    def __repr__(self):
+        return f"FC({set(self.U)}, {set(self.V)})"
+
 
 @dataclass(frozen=True)
 class ValidComponent(Component):
@@ -113,9 +116,6 @@ class ValidComponent(Component):
             return (self.min_right(imp) - self.root.min_left(imp)) / 2
         else:
             return (self.min_left(imp) - self.root.min_right(imp)) / 2
-
-    def rotation_to_fully_repair2(self, imp: Imputation) -> Fraction:
-        return self.root.min_profit(imp) - self.min_profit(imp)
 
     def get_fcs(self) -> frozenset[FundamentalComponent]:
         """Return all fundamental components in this component."""
@@ -192,3 +192,6 @@ class ValidComponent(Component):
         if self.root in fcs or children:
             return ValidComponent(root=self.root, children=children, rotation=self.rotation)
         return None
+
+    def __repr__(self):
+        return f"VC({self.root} | {self.rotation} | children={set(self.children)})"
