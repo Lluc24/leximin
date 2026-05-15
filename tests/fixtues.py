@@ -1,17 +1,19 @@
-"""Reusable graph fixtures for module-level test suites."""
+"""Reusable test fixtures for module-level test suites."""
 
 from dataclasses import dataclass, field
 from fractions import Fraction
-from component import FundamentalComponent
+
+from classification import Classification
+from component import FundamentalComponent, ValidComponent
 from graph import BipartiteGraph
 from imputation import Imputation
-from utils import set_u_vertices, set_v_vertices
-from classification import Classification
 from matching import MaxWeightMatching
+from utils import set_u_vertices, set_v_vertices
+
 
 @dataclass(frozen=True)
 class TestBipartiteGraph(BipartiteGraph):
-    """Bipartite graph used for tests"""
+    """Bipartite graph used for tests."""
 
     name: str
     degenerate: bool = field(default=False, repr=False)
@@ -42,7 +44,7 @@ VAZIRANI_1 = TestBipartiteGraph(
         essential_u=frozenset({0, 1, 2, 3}),
         essential_v=frozenset({4, 5, 6, 7}),
         essential_edges=frozenset({(0, 4), (1, 5), (2, 6), (3, 7)}),
-        subpar_edges=frozenset({(0, 5), (2, 7)})
+        subpar_edges=frozenset({(0, 5), (2, 7)}),
     ),
     leximin_imp=Imputation(
         {
@@ -72,8 +74,8 @@ VAZIRANI_1 = TestBipartiteGraph(
         FundamentalComponent(
             U=frozenset({3}),
             V=frozenset({7}),
-        )
-    }
+        ),
+    },
 )
 
 VAZIRANI_3 = TestBipartiteGraph(
@@ -112,8 +114,8 @@ VAZIRANI_3 = TestBipartiteGraph(
         FundamentalComponent(
             U=frozenset({1}),
             V=frozenset({3}),
-        )
-    }
+        ),
+    },
 )
 
 VAZIRANI_5 = TestBipartiteGraph(
@@ -168,8 +170,8 @@ VAZIRANI_5 = TestBipartiteGraph(
         FundamentalComponent(
             U=frozenset({3}),
             V=frozenset({7}),
-        )
-    }
+        ),
+    },
 )
 
 SANTAMARIA_1 = TestBipartiteGraph(
@@ -209,7 +211,7 @@ SANTAMARIA_1 = TestBipartiteGraph(
             U=frozenset({1}),
             V=frozenset({3}),
         ),
-    }
+    },
 )
 
 SANTAMARIA_2 = TestBipartiteGraph(
@@ -257,7 +259,8 @@ SANTAMARIA_2 = TestBipartiteGraph(
     fcs={
         FundamentalComponent(
             U=frozenset({2}),
-            V=frozenset({7})),
+            V=frozenset({7}),
+        ),
     },
 )
 
@@ -267,4 +270,55 @@ ALL_GRAPHS = (
     VAZIRANI_5,
     SANTAMARIA_1,
     SANTAMARIA_2,
+)
+
+ROOT_FC = FundamentalComponent(
+    U=frozenset({0}),
+    V=frozenset({2}),
+)
+
+CHILD_FC = FundamentalComponent(
+    U=frozenset({1}),
+    V=frozenset({3}),
+)
+
+VALID_COMPONENT_CW = ValidComponent(
+    root=ROOT_FC,
+    rotation="CW",
+    children=frozenset(
+        {
+            ValidComponent(root=CHILD_FC, rotation="CW"),
+        }
+    ),
+)
+
+IMPUTATION_FOR_COMPONENTS = Imputation(
+    {
+        0: Fraction(4),
+        1: Fraction(8),
+        2: Fraction(6),
+        3: Fraction(10),
+    }
+)
+
+IMPUTATION_FOR_VAZIRANI_3 = Imputation(
+    {
+        0: Fraction(70),
+        1: Fraction(0),
+        2: Fraction(0),
+        3: Fraction(100),
+    }
+)
+
+IMPUTATION_FOR_VAZIRANI_5 = Imputation(
+    {
+        0: Fraction(0),
+        1: Fraction(30),
+        2: Fraction(100),
+        3: Fraction(60),
+        4: Fraction(60),
+        5: Fraction(40),
+        6: Fraction(0),
+        7: Fraction(0),
+    }
 )

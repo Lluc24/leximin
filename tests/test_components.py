@@ -1,7 +1,7 @@
 from fractions import Fraction
 import pytest
 from component import FundamentalComponent, ValidComponent
-from tests.fixtures.components import (
+from tests.fixtues import (
     CHILD_FC,
     IMPUTATION_FOR_COMPONENTS,
     ROOT_FC,

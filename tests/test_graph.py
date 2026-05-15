@@ -1,5 +1,4 @@
-from tests.fixtures.graphs import VAZIRANI_3
-from tests.fixtures.imputations import IMPUTATION_FOR_VAZIRANI_3
+from tests.fixtues import IMPUTATION_FOR_VAZIRANI_3, VAZIRANI_3
 from fractions import Fraction
 from copy import deepcopy
 

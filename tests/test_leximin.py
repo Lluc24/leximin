@@ -5,8 +5,7 @@ import logging
 from graph import BipartiteGraph
 from imputation import Imputation
 from leximin import LeximinSolver
-from tests.fixtures.graphs import ALL_GRAPHS, VAZIRANI_5
-from tests.fixtures.imputations import IMPUTATION_FOR_VAZIRANI_5
+from tests.fixtues import ALL_GRAPHS, IMPUTATION_FOR_VAZIRANI_5, VAZIRANI_5
 
 LOGGER = logging.getLogger("tests.leximin")
 

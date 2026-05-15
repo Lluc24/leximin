@@ -1,4 +1,4 @@
-from tests.fixtures.graphs import ALL_GRAPHS
+from tests.fixtues import ALL_GRAPHS
 import logging
 from matching import max_weight_matching
 

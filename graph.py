@@ -83,7 +83,7 @@ class BipartiteGraph:
         weights = nx.get_edge_attributes(g, 'weight')
         if weights:
             nx.draw_networkx_edge_labels(
-                g, pos, edge_labels=weights, label_pos=0.1
+                g, pos, edge_labels=weights, label_pos=0.15
             )
         plt.show()
 

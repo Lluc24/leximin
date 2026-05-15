@@ -1,8 +1,7 @@
 from fractions import Fraction
 import logging
-from tests.fixtures.graphs import ALL_GRAPHS, VAZIRANI_3
+from tests.fixtues import ALL_GRAPHS, IMPUTATION_FOR_VAZIRANI_3, VAZIRANI_3
 from imputation import compute_imputation
-from tests.fixtures.imputations import IMPUTATION_FOR_VAZIRANI_3
 
 LOGGER = logging.getLogger("tests.imputation")
 

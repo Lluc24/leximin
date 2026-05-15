@@ -1,4 +1,4 @@
-from tests.fixtures.graphs import ALL_GRAPHS
+from tests.fixtues import ALL_GRAPHS
 from classification import Classification, classify
 import logging
 
