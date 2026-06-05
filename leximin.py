@@ -28,14 +28,13 @@ class LeximinSolver:
         self.frozen: set[int] = set()
         self.fully_repaired: set[int] = set()
 
-        provided_imp = imp is not None
         self.imp: Imputation = imp or compute_imputation(graph, max_weight_matching(graph.weights))
         self.clock: Fraction = Fraction(0)
         self.pq: list[tuple[Fraction, int, int, Event]] = []
         self.seq = count()
         LOGGER.info(
             "Initialized solver (%s imputation, |U|=%d, |V|=%d, |E|=%d)",
-            "provided" if provided_imp else "computed",
+            "provided" if imp is not None else "computed",
             len(graph.u_vertices),
             len(graph.v_vertices),
             len(graph.edges),
