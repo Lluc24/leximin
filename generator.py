@@ -96,7 +96,7 @@ def generate_degenerate(n: int, p: float, seed: int | None) -> BipartiteGraph:
                 second_weight = sum(graph.weights[e] for e in second.matching)
                 delta = mwm.weight - second_weight
                 bump = Fraction(delta, len(second.matching))
-                LOGGER.info(f"Degenerate attempt {i+1}: Found second matching with weight {second_weight}, bump) = {bump} to each of its {len(second.matching)} edges.")
+                LOGGER.info(f"Degenerate attempt {i+1}: Found second matching with weight {second_weight}, {bump=} to each of its {len(second.matching)} edges.")
                 new_weights = graph.weights.copy()
                 for e in second.matching:
                     new_weights[e] += bump
