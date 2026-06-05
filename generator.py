@@ -2,6 +2,7 @@
 
 import random
 import logging
+import time
 from fractions import Fraction
 from graph import BipartiteGraph
 from classification import classify
@@ -59,12 +60,15 @@ def generate_non_degenerate(n: int, p: float, seed: int) -> BipartiteGraph:
     (unique MWM). With random integer weights this loop rarely iterates more
     than once.
     """
+    start_time = time.perf_counter()
     rng = random.Random(seed)
     for _ in range(_ATTEMPT_LIMIT):
         n_u, n_v = _random_split(n, rng)
         graph = _random_graph(n_u, n_v, p, rng)
         if graph.edges:
             if not _is_degenerate(graph):
+                elapsed = time.perf_counter() - start_time
+                LOGGER.info(f"Generated non-degenerate graph with {len(graph.edges)} edges in {elapsed:.4f}s (n={n}, p={p}, seed={seed}).")
                 return graph
             else:
                 LOGGER.info(f"Non-degenerate with {len(graph.edges)} edges is DEGENERATE, retrying.")
@@ -82,6 +86,7 @@ def generate_degenerate(n: int, p: float, seed: int | None) -> BipartiteGraph:
     are adjusted so that w(M') == w(MWM). The graph structure is unchanged;
     only a subset of weights is nudged by a rational Fraction amount.
     """
+    start_time = time.perf_counter()
     rng = random.Random(seed)
 
     for i in range(_ATTEMPT_LIMIT):
@@ -93,10 +98,9 @@ def generate_degenerate(n: int, p: float, seed: int | None) -> BipartiteGraph:
             LOGGER.info(f"Degenerate attempt {i+1}: Found MWM with weight {mwm.weight}.")
             second = _find_second_matching(graph, mwm)
             if second is not None:
-                second_weight = sum(graph.weights[e] for e in second.matching)
-                delta = mwm.weight - second_weight
+                delta = mwm.weight - second.weight
                 bump = Fraction(delta, len(second.matching))
-                LOGGER.info(f"Degenerate attempt {i+1}: Found second matching with weight {second_weight}, {bump=} to each of its {len(second.matching)} edges.")
+                LOGGER.info(f"Degenerate attempt {i+1}: Found second matching with weight {second.weight}, {bump=} to each of its {len(second.matching)} edges.")
                 new_weights = graph.weights.copy()
                 for e in second.matching:
                     new_weights[e] += bump
@@ -107,6 +111,8 @@ def generate_degenerate(n: int, p: float, seed: int | None) -> BipartiteGraph:
                     weights=new_weights,
                 )
                 if _is_degenerate(graph):
+                    elapsed = time.perf_counter() - start_time
+                    LOGGER.info(f"Generated degenerate graph with {len(graph.edges)} edges in {elapsed:.4f}s (n={n}, p={p}, seed={seed}).")
                     return graph
                 else:
                     LOGGER.info(f"Degenerate attempt {i+1}: Surgery failed to create degeneracy, skipping.")

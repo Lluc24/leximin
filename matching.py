@@ -27,6 +27,6 @@ def max_weight_matching(weights: dict[tuple[int, int], Fraction]) -> MaxWeightMa
     for e in product(u_vertices, v_vertices):
         bip.add_edge(*e, weight=weights[e] if e in weights else Fraction(0))
     matching = mwm(bip)
-    matching = frozenset(sorted([s(u, v) for u, v in matching]))
+    matching = frozenset(sorted([s(u, v) for u, v in matching if s(u, v) in weights]))
     weight = sum((weights[e] for e in matching), Fraction(0))
     return MaxWeightMatching(weight=weight, matching=matching)

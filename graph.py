@@ -1,8 +1,9 @@
 """Immutable bipartite graph model with weighted edges."""
-
+import pathlib
 from fractions import Fraction
 from dataclasses import dataclass
 from itertools import product
+
 import matplotlib.pyplot as plt
 import networkx as nx
 from matching import max_weight_matching
@@ -104,3 +105,14 @@ class BipartiteGraph:
             if coalition_profit < coalition_value:
                 return False
         return True
+
+    def save(self, path: str | pathlib.Path) -> None:
+        """Save the graph to a JSON file."""
+        import json
+        data = {
+            "u_vertices": list(self.u_vertices),
+            "v_vertices": list(self.v_vertices),
+            "weights": {f"{u},{v}": str(w) for (u, v), w in self.weights.items()}
+        }
+        with open(path, "w") as f:
+            json.dump(data, f)

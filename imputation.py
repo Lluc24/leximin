@@ -42,7 +42,9 @@ def compute_imputation(graph: BipartiteGraph, mwm: MaxWeightMatching) -> Imputat
     )
     prob = LpProblem("Imputation", LpMaximize)
     profits = {v: LpVariable(f"profit_{v}", lowBound=0) for v in graph.vertices}
-    prob += lpSum(profits[v] for v in graph.vertices)
+    prob += lpSum(profits[v] for v in graph.u_vertices)
+
+    prob += (lpSum(profits[v] for v in graph.vertices) == mwm.weight, "Efficiency")
 
     for u, v in graph.edges:
         prob += (profits[u] + profits[v] >= graph.weights[u, v], f"Edge_{u}_{v}")

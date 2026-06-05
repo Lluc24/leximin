@@ -264,12 +264,53 @@ SANTAMARIA_2 = TestBipartiteGraph(
     },
 )
 
+SANTAMARIA_3 = TestBipartiteGraph(
+    name="santamaria_3",
+    u_vertices=frozenset({1, 2, 3, 4}),
+    v_vertices=frozenset({6, 7}),
+    weights={
+        (1, 7): Fraction(17),
+        (3, 6): Fraction(64),
+        (3, 7): Fraction(308, 3),
+    },
+    degenerate=False,
+    matching=MaxWeightMatching(
+        weight=Fraction(308, 3),
+        matching=frozenset({(3, 7)}),
+    ),
+    classification=Classification(
+        essential_u=frozenset({3}),
+        essential_v=frozenset({7}),
+        subpar_u=frozenset({1, 2, 4}),
+        subpar_v=frozenset({6}),
+        essential_edges=frozenset({(3, 7)}),
+        subpar_edges=frozenset({(1, 7), (3, 6)}),
+    ),
+    leximin_imp=Imputation(
+        {
+            1: Fraction(0),
+            2: Fraction(0),
+            3: Fraction(64),
+            4: Fraction(0),
+            6: Fraction(0),
+            7: Fraction(116, 3),
+        }
+    ),
+    fcs={
+        FundamentalComponent(
+            U=frozenset({3}),
+            V=frozenset({7}),
+        ),
+    }
+)
+
 ALL_GRAPHS = (
     VAZIRANI_1,
     VAZIRANI_3,
     VAZIRANI_5,
     SANTAMARIA_1,
     SANTAMARIA_2,
+    SANTAMARIA_3,
 )
 
 ROOT_FC = FundamentalComponent(

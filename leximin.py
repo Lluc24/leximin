@@ -59,6 +59,8 @@ class LeximinSolver:
     def _initialize(self):
         """Seed bins with essential edges and schedule first activations."""
         fcs = self._get_fundamental_components()
+        fcs_vertices = frozenset(u for fc in fcs for u in fc.vertices)
+        self.frozen |= self.graph.vertices.difference(fcs_vertices)
         LOGGER.info("Initializing with fundamental components: %s", fcs)
         for fc in fcs:
             self.bin_set.add(fc)
@@ -82,7 +84,11 @@ class LeximinSolver:
         if isinstance(event, BinActivationEvent):
             return event.fc not in self.bin_set
         elif isinstance(event, TightEdgeEvent):
-            return event.source_vc not in self.active
+            if event.source_vc not in self.active:
+                return True
+            if event not in self._get_tight_edge_events_for(event.source_vc):
+                return True
+            return False
         else:
             return event.vc not in self.active
 
@@ -173,6 +179,13 @@ class LeximinSolver:
         delta = vc.rotation_to_fully_repair(self.imp)
         ev = FullyRepairedEvent(self.clock + delta, vc)
         self._push_event(ev)
+        tight_events = self._get_tight_edge_events_for(vc)
+        for ev in tight_events:
+            self._push_event(ev)
+
+    def _get_tight_edge_events_for(self, vc: ValidComponent) -> list[TightEdgeEvent]:
+        events = []
+        delta = vc.rotation_to_fully_repair(self.imp)
         for u in vc.decreasing_vertices:
             for v in self.graph.neighbors_of(u).difference(vc.vertices):
                 edge = s(u, v)
@@ -188,14 +201,13 @@ class LeximinSolver:
                             # If it is less than two times the smaller delta, then the edge will become tight before
                             # either component is fully repaired
                             ev = TightEdgeEvent(self.clock + slack / 2, edge, vc)
-                            self._push_event(ev)
+                            events.append(ev)
                         elif slack < delta + delta2:
                             LOGGER.info("Scheduling tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). Both profits are decreasing and the slack is between two times the smaller delta and the sum of both deltas", edge, vc, other_vc, slack, delta, delta2)
                             # Max is the min plus the positive difference, so it is checking if slack is more than two
                             # times the smaller delta but less than two times the smaller delta plus the positive
-                            # difference
                             ev = TightEdgeEvent(self.clock + slack - min(delta, delta2), edge, vc)
-                            self._push_event(ev)
+                            events.append(ev)
                     elif any(v in other_vc.increasing_vertices for other_vc in self.active):
                         # The other endpoint is increasing, but for how much time will it be increasing?
                         [other_vc] = [other_vc for other_vc in self.active if v in other_vc.increasing_vertices]
@@ -204,11 +216,12 @@ class LeximinSolver:
                             LOGGER.info("Scheduling tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). The other endpoint is increasing, but it will stop being increasing before the first component is fully repaired, and the slack is smaller than the time until that happens", edge, vc, other_vc, slack, delta, delta2)
                             # The edge will become tight before the source component is fully repaired
                             ev = TightEdgeEvent(self.clock + slack + delta2, edge, vc)
-                            self._push_event(ev)
+                            events.append(ev)
                     elif slack < delta:
                         LOGGER.info("Scheduling tight edge event for %s from %s (slack=%s, delta=%s). The other endpoint is not in active, and the slack is smaller than the time until the component is fully repaired", edge, vc, slack, delta)
                         ev = TightEdgeEvent(self.clock + slack, edge, vc)
-                        self._push_event(ev)
+                        events.append(ev)
+        return events
 
     def _add_remainders_to_bin(self, vc: ValidComponent, min_sub: ValidComponent) -> None:
         """Decompose residual FCs and schedule their bin activation events."""
