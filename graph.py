@@ -1,5 +1,6 @@
 """Immutable bipartite graph model with weighted edges."""
 import pathlib
+import json
 from fractions import Fraction
 from dataclasses import dataclass
 from itertools import product
@@ -27,11 +28,6 @@ class BipartiteGraph:
     def edges(self) -> frozenset[tuple[int, int]]:
         """Return all edges in the graph."""
         return frozenset(self.weights.keys())
-
-    @property
-    def weighted_edges(self) -> frozenset[tuple[int, int, Fraction]]:
-        """Return all edges with their weights."""
-        return frozenset((u, v, w) for (u, v), w in self.weights.items())
 
     def neighbors_of(self, vertex: int) -> frozenset[int]:
         """Return all neighbors of `vertex` on the opposite side of the bipartition."""
@@ -108,11 +104,27 @@ class BipartiteGraph:
 
     def save(self, path: str | pathlib.Path) -> None:
         """Save the graph to a JSON file."""
-        import json
         data = {
             "u_vertices": list(self.u_vertices),
             "v_vertices": list(self.v_vertices),
-            "weights": {f"{u},{v}": str(w) for (u, v), w in self.weights.items()}
+            "weights": list([u, v, str(w)] for (u, v), w in self.weights.items())
         }
         with open(path, "w") as f:
-            json.dump(data, f)
+            json.dump(data, f, indent=4)
+
+    @staticmethod
+    def load(path: str | pathlib.Path) -> 'BipartiteGraph':
+        """Load a graph from a JSON file."""
+        with open(path, "r") as f:
+            data = json.load(f)
+        u_vertices = frozenset(data["u_vertices"])
+        v_vertices = frozenset(data["v_vertices"])
+        weights = {
+            (u, v): Fraction(w)
+            for u, v, w in data["weights"]
+        }
+        return BipartiteGraph(
+            u_vertices=u_vertices,
+            v_vertices=v_vertices,
+            weights=weights
+        )

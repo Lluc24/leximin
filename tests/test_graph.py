@@ -10,10 +10,6 @@ def test_edges() -> None:
     graph = VAZIRANI_3
     assert graph.edges == frozenset({(0, 2), (1, 3), (0, 3)})
 
-def test_weighted_edges() -> None:
-    graph = VAZIRANI_3
-    assert graph.weighted_edges == frozenset({(0, 2, Fraction(70)), (1, 3, Fraction(100)), (0, 3, Fraction(110))})
-
 def test_neighbors_of() -> None:
     graph = VAZIRANI_3
     assert graph.neighbors_of(0) == frozenset({2, 3})
