@@ -18,6 +18,7 @@ import pstats
 import re
 import sys
 import tracemalloc
+from tqdm import tqdm
 
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -41,12 +42,11 @@ def benchmark(graph_path: pathlib.Path) -> dict:
         raise ValueError(f"Unexpected filename: {graph_path.name!r}")
 
     graph = BipartiteGraph.load(graph_path)
-    solver = LeximinSolver(graph)
-
     tracemalloc.start()
     pr = cProfile.Profile()
     pr.enable()
 
+    solver = LeximinSolver(graph)
     solver.solve()
 
     pr.disable()
@@ -80,8 +80,7 @@ def main():
     with csv_path.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS)
         writer.writeheader()
-        for i, path in enumerate(graph_files, 1):
-            LOGGER.info("[%d/%d] %s", i, len(graph_files), path.name)
+        for i, path in tqdm(enumerate(graph_files, 1), total=len(graph_files)):
             try:
                 writer.writerow(benchmark(path))
                 f.flush()
