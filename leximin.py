@@ -48,7 +48,7 @@ class LeximinSolver:
             LOGGER.debug("Current priority queue: %s", self.pq)
             event = self._pop_event()
             if self._is_stale(event):
-                LOGGER.debug("Skipping stale event: %s", event)
+                LOGGER.info("Skipping stale event: %s", event)
             else:
                 LOGGER.info("Handling event: %s", event)
                 self._advance_clock_to(event.clock)
@@ -178,9 +178,11 @@ class LeximinSolver:
         """Schedule full-repair and tight-edge events for an active component."""
         delta = vc.rotation_to_fully_repair(self.imp)
         ev = FullyRepairedEvent(self.clock + delta, vc)
+        LOGGER.info("Scheduled full repair event for %s at clock %s (delta=%s)", vc, ev.clock, delta)
         self._push_event(ev)
         tight_events = self._get_tight_edge_events_for(vc)
         for ev in tight_events:
+            LOGGER.info("Scheduled tight edge event for %s at clock %s", ev.edge, ev.clock)
             self._push_event(ev)
 
     def _get_tight_edge_events_for(self, vc: ValidComponent) -> list[TightEdgeEvent]:
@@ -196,14 +198,14 @@ class LeximinSolver:
                         [other_vc] = [other_vc for other_vc in self.active if v in other_vc.decreasing_vertices]
                         delta2 = other_vc.rotation_to_fully_repair(self.imp)
                         if slack <= 2*min(delta, delta2):
-                            LOGGER.info("Scheduling tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). Both profits are decreasing and the slack is smaller than two times the smaller delta", edge, vc, other_vc, slack, delta, delta2)
+                            LOGGER.info("Detected tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). Both profits are decreasing and the slack is smaller than two times the smaller delta", edge, vc, other_vc, slack, delta, delta2)
                             # Both components are being repaired, so slack decreases at rate 2
                             # If it is less than two times the smaller delta, then the edge will become tight before
                             # either component is fully repaired
                             ev = TightEdgeEvent(self.clock + slack / 2, edge, vc)
                             events.append(ev)
                         elif slack < delta + delta2:
-                            LOGGER.info("Scheduling tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). Both profits are decreasing and the slack is between two times the smaller delta and the sum of both deltas", edge, vc, other_vc, slack, delta, delta2)
+                            LOGGER.info("Detected tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). Both profits are decreasing and the slack is between two times the smaller delta and the sum of both deltas", edge, vc, other_vc, slack, delta, delta2)
                             # Max is the min plus the positive difference, so it is checking if slack is more than two
                             # times the smaller delta but less than two times the smaller delta plus the positive
                             ev = TightEdgeEvent(self.clock + slack - min(delta, delta2), edge, vc)
@@ -213,12 +215,12 @@ class LeximinSolver:
                         [other_vc] = [other_vc for other_vc in self.active if v in other_vc.increasing_vertices]
                         delta2 = other_vc.rotation_to_fully_repair(self.imp)
                         if slack + delta2 < delta:
-                            LOGGER.info("Scheduling tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). The other endpoint is increasing, but it will stop being increasing before the first component is fully repaired, and the slack is smaller than the time until that happens", edge, vc, other_vc, slack, delta, delta2)
+                            LOGGER.info("Detected tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). The other endpoint is increasing, but it will stop being increasing before the first component is fully repaired, and the slack is smaller than the time until that happens", edge, vc, other_vc, slack, delta, delta2)
                             # The edge will become tight before the source component is fully repaired
                             ev = TightEdgeEvent(self.clock + slack + delta2, edge, vc)
                             events.append(ev)
                     elif slack < delta:
-                        LOGGER.info("Scheduling tight edge event for %s from %s (slack=%s, delta=%s). The other endpoint is not in active, and the slack is smaller than the time until the component is fully repaired", edge, vc, slack, delta)
+                        LOGGER.info("Detected tight edge event for %s from %s (slack=%s, delta=%s). The other endpoint is not in active, and the slack is smaller than the time until the component is fully repaired", edge, vc, slack, delta)
                         ev = TightEdgeEvent(self.clock + slack, edge, vc)
                         events.append(ev)
         return events
