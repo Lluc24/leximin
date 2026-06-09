@@ -6,8 +6,8 @@ import pandas as pd
 
 ROOT_DIR = pathlib.Path(__file__).resolve().parent.parent
 DEGENERATE_P_VALUES = (0.3, 0.6, 1.0)
-RUNTIME_CONSTANT = 0.000001
-MEMORY_CONSTANT = 1
+RUNTIME_CONSTANT = 0.0000005
+MEMORY_CONSTANT = 1.1
 OUTPUT_DIR = ROOT_DIR / "experiments" / "results" / "plots"
 
 plt.style.use("seaborn-v0_8-whitegrid")
