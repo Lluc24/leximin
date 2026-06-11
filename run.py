@@ -1,4 +1,23 @@
-"""CLI driver for running the leximin solver on a single graph."""
+"""CLI driver for running the leximin solver on a single graph.
+
+Usage
+-----
+::
+
+    python run.py --n-u <N_U> --n-v <N_V> --edges <u1> <v1> <w1> [<u2> <v2> <w2> ...]
+
+Example
+-------
+::
+
+    python run.py --n-u 2 --n-v 2 --edges 0 2 5 0 3 3 1 2 4 1 3 2
+
+Vertex IDs
+----------
+U-side vertices are ``0, …, N_U - 1``; V-side vertices are
+``N_U, …, N_U + N_V - 1``.  Edge weights may be integers or fractions
+(e.g. ``3/2``).
+"""
 
 import pathlib
 import argparse

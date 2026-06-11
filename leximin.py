@@ -1,4 +1,45 @@
-"""Event-driven solver for computing a leximin core imputation."""
+"""Event-driven solver for computing a leximin core imputation.
+
+This module is the heart of the implementation.  ``LeximinSolver`` executes
+Algorithm 1 of Vazirani (2025): a clock-based primal–dual event loop that
+iteratively repairs the minimum-profit vertex until all profits are
+leximin-optimal.
+
+High-level flow
+---------------
+1. **Initialisation** — classify all edges and vertices; find fundamental
+   components (connected components of the essential/viable-edge subgraph
+   whose vertices are all essential); place them in BIN and schedule their
+   activation events.  All non-essential vertices are immediately frozen
+   (they receive zero profit in every core imputation).
+
+2. **Event loop** — pop the lowest-clock event from the min-heap and dispatch:
+
+   * ``BinActivationEvent`` — the global clock has reached the minimum profit
+     of a BIN component; activate it as a ``ValidComponent`` with the
+     appropriate rotation direction and schedule its repair and tight-edge events.
+
+   * ``FullyRepairedEvent`` — an active component's rotation has equalized the
+     minimum profit on both sides; extract the minimal subcomponent (Min-Sub1),
+     move it to FULLY-REPAIRED, and decompose the remainder back to BIN.
+
+   * ``TightEdgeEvent`` — a subpar edge incident on an active component has
+     become tight; apply the correct merge/freeze rule based on the status
+     (BIN / ACTIVE / FROZEN / FULLY-REPAIRED) of the opposite endpoint.
+
+3. **Termination** — when the heap is empty every vertex's profit is final
+   and the current ``Imputation`` object is returned.
+
+Design notes
+------------
+- The priority queue stores tuples ``(clock, priority, seq, event)`` so that
+  ties are broken deterministically: TightEdge < BinActivation < FullyRepaired
+  (see ``events.py``).
+- Stale events (referencing components that have already been deactivated) are
+  silently skipped via ``_is_stale``.
+- The clock advances by rotating *all* currently active components
+  simultaneously, preserving the core invariant on every tight edge.
+"""
 
 import heapq
 import logging
@@ -16,10 +57,44 @@ LOGGER = logging.getLogger(__name__)
 
 
 class LeximinSolver:
-    """Run Algorithm 1 style event processing until no event remains."""
+    """Event-driven implementation of Algorithm 1 (Vazirani 2025).
+
+    Attributes
+    ----------
+    graph:
+        The input bipartite graph.
+    clf:
+        Pre-computed classification of all vertices and edges.
+    bin_set:
+        Set of fundamental components waiting to be activated.
+    active:
+        Set of valid components currently undergoing rotation.
+    frozen:
+        Set of vertex IDs whose profit is permanently fixed (unique-imputation
+        components and subpar vertices).
+    fully_repaired:
+        Set of vertex IDs that have reached their leximin-optimal profit.
+    imp:
+        The mutable imputation object; updated in place during the event loop.
+    clock:
+        The current global clock value ``Ω``.
+    pq:
+        Min-heap of ``(clock, priority, seq, event)`` tuples.
+    seq:
+        Tie-breaking counter; incremented on every push.
+    """
 
     def __init__(self, graph: BipartiteGraph, imp: Imputation = None):
-        """Initialize solver state from graph classification and initial imputation."""
+        """Initialize solver state from graph classification and an optional starting imputation.
+
+        Parameters
+        ----------
+        graph:
+            The bipartite graph for which to compute the leximin core imputation.
+        imp:
+            An optional pre-computed core imputation to use as the starting point.
+            If ``None``, the U-optimal core imputation is computed via LP.
+        """
         self.graph = graph
         self.clf = classify(graph)
 
@@ -186,6 +261,45 @@ class LeximinSolver:
             self._push_event(ev)
 
     def _get_tight_edge_events_for(self, vc: ValidComponent) -> list[TightEdgeEvent]:
+        """Compute the set of TightEdgeEvents that may fire before ``vc`` is fully repaired.
+
+        For each subpar edge ``(u, v)`` with ``u ∈ vc.decreasing_vertices`` and
+        ``v ∉ vc``, the slack ``s = p(u) + p(v) - w(u,v)`` changes at a rate
+        that depends on whether ``v`` is in another active component and whether
+        it is on the increasing or decreasing side of that component.
+
+        Three cases arise (let ``δ₁ = vc.rotation_to_fully_repair``,
+        ``δ₂ = other_vc.rotation_to_fully_repair``):
+
+        **Case A — ``v`` is decreasing in another active component.**
+        Both endpoints move downward at unit rate, so slack decreases at rate 2.
+
+        - If ``s ≤ 2·min(δ₁, δ₂)``: the edge tightens before either component
+          is repaired.  Fire at ``clock + s/2``.
+        - If ``2·min(δ₁, δ₂) < s < δ₁ + δ₂``: the first component to be
+          repaired stops moving, after which only ``vc``'s endpoint decreases.
+          The slack at the repair moment of the first component is
+          ``s - 2·min(δ₁, δ₂)``, and tightening happens ``s - min(δ₁, δ₂)``
+          after the current clock.  Fire at ``clock + s - min(δ₁, δ₂)``.
+        - If ``s ≥ δ₁ + δ₂``: both components repair before the edge tightens;
+          no event is scheduled.
+
+        **Case B — ``v`` is increasing in another active component.**
+        ``v``'s profit increases, widening the slack, so the edge can only
+        tighten after ``other_vc`` is fully repaired (at ``clock + δ₂``), at
+        which point ``v`` stops moving and the remaining slack is ``s + δ₂``.
+        The edge then tightens at ``clock + δ₂ + (s + δ₂)`` only if
+        ``s + δ₂ < δ₁`` (otherwise ``vc`` repairs first).  Fire at
+        ``clock + s + δ₂`` when ``s + δ₂ < δ₁``.
+
+        **Case C — ``v`` is not in any active component.**
+        Slack decreases at rate 1 (only ``u`` is moving).  Schedule a tight-
+        edge event at ``clock + s`` if ``s < δ₁``.
+
+        Only events that would fire strictly before ``vc`` is fully repaired
+        are scheduled; all others are omitted because they will be recreated
+        (if still relevant) after the repair event fires.
+        """
         events = []
         delta = vc.rotation_to_fully_repair(self.imp)
         for u in vc.decreasing_vertices:
@@ -194,32 +308,27 @@ class LeximinSolver:
                 if edge in self.clf.subpar_edges:
                     slack = self.imp.slack(self.graph, *edge)
                     if any(v in other_vc.decreasing_vertices for other_vc in self.active):
-                        # The other endpoint is also decreasing
+                        # Case A: both endpoints decreasing — slack falls at rate 2.
                         [other_vc] = [other_vc for other_vc in self.active if v in other_vc.decreasing_vertices]
                         delta2 = other_vc.rotation_to_fully_repair(self.imp)
-                        if slack <= 2*min(delta, delta2):
+                        if slack <= 2 * min(delta, delta2):
                             LOGGER.info("Detected tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). Both profits are decreasing and the slack is smaller than two times the smaller delta", edge, vc, other_vc, slack, delta, delta2)
-                            # Both components are being repaired, so slack decreases at rate 2
-                            # If it is less than two times the smaller delta, then the edge will become tight before
-                            # either component is fully repaired
                             ev = TightEdgeEvent(self.clock + slack / 2, edge, vc)
                             events.append(ev)
                         elif slack < delta + delta2:
                             LOGGER.info("Detected tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). Both profits are decreasing and the slack is between two times the smaller delta and the sum of both deltas", edge, vc, other_vc, slack, delta, delta2)
-                            # Max is the min plus the positive difference, so it is checking if slack is more than two
-                            # times the smaller delta but less than two times the smaller delta plus the positive
                             ev = TightEdgeEvent(self.clock + slack - min(delta, delta2), edge, vc)
                             events.append(ev)
                     elif any(v in other_vc.increasing_vertices for other_vc in self.active):
-                        # The other endpoint is increasing, but for how much time will it be increasing?
+                        # Case B: v is increasing — slack grows until other_vc repairs, then falls.
                         [other_vc] = [other_vc for other_vc in self.active if v in other_vc.increasing_vertices]
                         delta2 = other_vc.rotation_to_fully_repair(self.imp)
                         if slack + delta2 < delta:
                             LOGGER.info("Detected tight edge event for %s between %s and %s (slack=%s, delta1=%s, delta2=%s). The other endpoint is increasing, but it will stop being increasing before the first component is fully repaired, and the slack is smaller than the time until that happens", edge, vc, other_vc, slack, delta, delta2)
-                            # The edge will become tight before the source component is fully repaired
                             ev = TightEdgeEvent(self.clock + slack + delta2, edge, vc)
                             events.append(ev)
                     elif slack < delta:
+                        # Case C: v is static — slack falls at rate 1.
                         LOGGER.info("Detected tight edge event for %s from %s (slack=%s, delta=%s). The other endpoint is not in active, and the slack is smaller than the time until the component is fully repaired", edge, vc, slack, delta)
                         ev = TightEdgeEvent(self.clock + slack, edge, vc)
                         events.append(ev)

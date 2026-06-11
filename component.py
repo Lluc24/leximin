@@ -1,4 +1,28 @@
-"""Component abstractions used by the event-driven leximin solver."""
+"""Component abstractions used by the event-driven leximin solver.
+
+The solver maintains a forest of *valid components*, each of which is a
+rooted tree of *fundamental components* (FCs) connected by legitimate tight
+subpar edges.  Two classes implement this hierarchy:
+
+``FundamentalComponent``
+    A single connected component of the essential/viable-edge subgraph ``H₀``
+    whose vertices are all essential.  In the non-degenerate case each FC is a
+    single essential edge; in the degenerate case it may span multiple vertices
+    linked by viable edges.
+
+``ValidComponent``
+    A rooted tree of FCs.  The root FC drives the rotation direction: CW
+    (left profits increase, right decrease) when the root's minimum profit is
+    on the left side, CCW otherwise.  Children are attached when a tight
+    subpar edge legitimately connects an ACTIVE component to a BIN component
+    (Definition 20 of Vazirani 2025).
+
+Both classes are *frozen dataclasses* — every structural change (child
+attachment, sub-component extraction) produces a new instance rather than
+mutating the existing one.  Component identity is tracked via a per-instance
+``uid`` integer rather than by value equality, because two structurally
+identical components at different points in the algorithm are distinct objects.
+"""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -111,7 +135,17 @@ class ValidComponent(Component):
         return self.right if self.rotation == 'CW' else self.left
 
     def rotation_to_fully_repair(self, imp: Imputation) -> Fraction:
-        """Return the rotation amount until this component is fully repaired."""
+        """Return the rotation amount ``δ`` needed to fully repair this component.
+
+        Full repair means the minimum profit on both sides of the *root* FC
+        are equal.  For a CW rotation the left side increases and the right
+        side decreases at unit rate, so both sides converge in ``δ`` steps where
+        ``min_right - min_left = 2δ``.  Symmetrically for CCW.
+
+        Only the root's minimum profits determine the repair time because the
+        tree invariant guarantees that the root always has the current overall
+        minimum (Vazirani 2025, Definition 19, item 2).
+        """
         if self.rotation == 'CW':
             return (self.min_right(imp) - self.root.min_left(imp)) / 2
         else:
@@ -136,13 +170,16 @@ class ValidComponent(Component):
                 return False
         return True
 
-    def add_child_at(self, vertex, fc: FundamentalComponent) -> 'ValidComponent':
-        """Attach a new fundamental component below the root containing `vertex`."""
+    def add_child_at(self, vertex: int, fc: FundamentalComponent) -> 'ValidComponent':
+        """Return a new component with ``fc`` attached as a child of the FC that contains ``vertex``.
+
+        The new child inherits the same rotation direction as this component,
+        which preserves the single-rotation-per-tree invariant of valid components
+        (Vazirani 2025, Definition 19, item 1).  The method recurses down the
+        tree until the FC that owns ``vertex`` is found.
+        """
         if vertex in self.root.vertices:
-            new_vc = ValidComponent(
-                root=fc,
-                rotation=self.rotation,
-            )
+            new_vc = ValidComponent(root=fc, rotation=self.rotation)
             return ValidComponent(
                 root=self.root,
                 children=self.children.union({new_vc}),
@@ -159,7 +196,15 @@ class ValidComponent(Component):
         raise ValueError(f"Vertex {vertex} is not in the component.")
 
     def compute_min_sub1(self, imp: Imputation) -> 'ValidComponent':
-        """Return the minimal subtree for the full-repair event (Sub1)."""
+        """Return the minimal sub-component (Min-Sub1) for the full-repair event.
+
+        At the moment of full repair the root's lower side has reached parity
+        with the opposite side.  Min-Sub1 is the smallest subtree containing
+        the root and every child FC whose opposite-side minimum also equals the
+        root's lower-side profit.  These are exactly the FCs that cannot be
+        improved further without violating tightness of already-tight edges.
+        The remaining FCs are decomposed and returned to BIN for further repair.
+        """
         if self.rotation == 'CW':
             profit = self.min_left(imp)
             fcs = {fc for fc in self.get_fcs() if fc.min_right(imp) == profit}
@@ -168,16 +213,28 @@ class ValidComponent(Component):
             fcs = {fc for fc in self.get_fcs() if fc.min_left(imp) == profit}
         return self._compute_min_tree(fcs | {self.root})
 
-    def compute_min_sub2(self, other_vc: 'ValidComponent', i, j) -> 'tuple[ValidComponent, ValidComponent]':
-        """Return minimal subtrees around tight-edge endpoints in two components (Sub2)."""
+    def compute_min_sub2(self, other_vc: 'ValidComponent', i: int, j: int) -> 'tuple[ValidComponent, ValidComponent]':
+        """Return the pair of minimal sub-components (Min-Sub2) for a tight-edge merge.
+
+        When a tight subpar edge ``(i, j)`` links two ACTIVE components, only
+        the sub-path from each component's root to the FC containing the edge
+        endpoint is moved to FULLY-REPAIRED.  This is the minimal structure
+        needed to enforce the legitimacy of ``(i, j)``.
+        """
         [fc_self] = [fc for fc in self.get_fcs() if (i in fc.vertices or j in fc.vertices)]
         [fc_other] = [fc for fc in other_vc.get_fcs() if (i in fc.vertices or j in fc.vertices)]
         min_tree_self = self._compute_min_tree({fc_self})
         min_tree_other = other_vc._compute_min_tree({fc_other})
         return min_tree_self, min_tree_other
 
-    def compute_min_sub3(self, vertex) -> 'ValidComponent':
-        """Return the minimal subtree containing `vertex` (Sub3)."""
+    def compute_min_sub3(self, vertex: int) -> 'ValidComponent':
+        """Return the minimal sub-component (Min-Sub3) containing ``vertex``.
+
+        Used when a tight subpar edge connects an ACTIVE component to a FROZEN
+        or FULLY-REPAIRED vertex.  Only the sub-path from the root to the FC
+        owning ``vertex`` is moved (to FROZEN or FULLY-REPAIRED, matching the
+        destination of the opposite endpoint).
+        """
         [fc] = [fc for fc in self.get_fcs() if vertex in fc.vertices]
         return self._compute_min_tree({fc})
 

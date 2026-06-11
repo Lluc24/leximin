@@ -1,4 +1,12 @@
-"""Immutable bipartite graph model with weighted edges."""
+"""Immutable bipartite graph model with weighted edges.
+
+The graph is the primary input to the leximin solver.  Vertices on the
+U-side are assigned integer IDs ``0, …, n_u - 1``; V-side vertices follow
+immediately as ``n_u, …, n_u + n_v - 1`` (see ``utils.py``).  All edge
+weights are stored as exact ``fractions.Fraction`` values to avoid any
+floating-point drift during the subsequent classification and event-loop
+computations.
+"""
 import pathlib
 import json
 from fractions import Fraction
@@ -13,11 +21,23 @@ from utils import subsets
 
 @dataclass(frozen=True)
 class BipartiteGraph:
-    """Bipartite graph with integer-labeled vertices and rational edge weights."""
+    """Bipartite graph with integer-labeled vertices and rational edge weights.
 
-    u_vertices: frozenset[int]  # IDs 0 to n_u - 1
-    v_vertices: frozenset[int]  # IDs n_u to n_v - 1
-    weights: dict[tuple[int, int], Fraction]  # (u, v) -> weight
+    Attributes
+    ----------
+    u_vertices:
+        Frozenset of U-side vertex IDs (``0, …, n_u - 1``).
+    v_vertices:
+        Frozenset of V-side vertex IDs (``n_u, …, n_u + n_v - 1``).
+    weights:
+        Dictionary mapping each edge ``(u, v)`` (canonical orientation,
+        ``u < v``) to its ``Fraction`` weight.  Only edges that actually
+        exist in the graph are stored here.
+    """
+
+    u_vertices: frozenset[int]
+    v_vertices: frozenset[int]
+    weights: dict[tuple[int, int], Fraction]
 
     @property
     def vertices(self) -> frozenset[int]:
@@ -85,13 +105,17 @@ class BipartiteGraph:
         plt.show()
 
     def is_imputation_in_core(self, profits: dict[int, Fraction]) -> bool:
-        """Assert that every coalition receives at least its matching value."""
+        """Return True when ``profits`` satisfies every coalition constraint.
+
+        This is an exponential-time brute-force check (all 2^n subsets) and is
+        only suitable for small graphs.  It is used exclusively by the test
+        suite to validate solver output.
+        """
         for coalition in subsets(self.vertices):
             coalition_set = frozenset(coalition)
             coalition_u = self.u_vertices.intersection(coalition_set)
             coalition_v = self.v_vertices.intersection(coalition_set)
-            # Coalition value is evaluated on the induced bipartite subgraph.
-            weights={
+            weights = {
                 (u, v): self.weights[(u, v)]
                 for u, v in product(coalition_u, coalition_v)
                 if (u, v) in self.weights

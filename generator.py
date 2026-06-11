@@ -1,4 +1,25 @@
-"""Random bipartite graph generators for benchmarking."""
+"""Random bipartite graph generators for benchmarking.
+
+Two generators are provided:
+
+``generate_non_degenerate(n, p, seed)``
+    Produces a random bipartite graph with ``n`` vertices (split randomly
+    between the two sides) and edge probability ``p``, resampling until the
+    graph has a *unique* maximum-weight matching (no viable edges).  With
+    random integer weights this condition holds with high probability on the
+    first attempt.
+
+``generate_degenerate(n, p, seed)``
+    Produces a random bipartite graph that is *degenerate* (has at least two
+    maximum-weight matchings, i.e., at least one viable edge).  It starts from
+    a random graph, finds a second maximum-cardinality matching ``M'``, and
+    adjusts the weights of ``M'``'s edges by a rational amount so that
+    ``w(M') = w(MWM)``.  The graph structure is unchanged; only a subset of
+    weights is nudged.
+
+Both generators raise ``RuntimeError`` after ``_ATTEMPT_LIMIT`` failed
+retries, which should be rare for typical ``(n, p)`` values.
+"""
 
 import random
 import logging
