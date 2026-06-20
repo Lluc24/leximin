@@ -157,11 +157,22 @@ class LeximinSolver:
     def _is_stale(self, event: Event) -> bool:
         """Return True when event references state that is no longer active."""
         if isinstance(event, BinActivationEvent):
-            return event.fc not in self.bin_set
+            # Also stale when the FC was removed and re-added to bin_set with a
+            # higher minimum profit: the old event clock is below the new minimum,
+            # so activating now would be premature.
+            return event.fc not in self.bin_set or event.clock < event.fc.min_profit(self.imp)
         elif isinstance(event, TightEdgeEvent):
             if event.source_vc not in self.active:
                 return True
-            if event not in self._get_tight_edge_events_for(event.source_vc):
+            new_events = self._get_tight_edge_events_for(event.source_vc)
+            if event not in new_events:
+                # The timing shifted (e.g. a neighbour's status changed between
+                # when this event was scheduled and now). Reschedule only the
+                # replacement event for this specific edge so that the correct
+                # tight-edge time is still captured.
+                for ev in new_events:
+                    if ev.edge == event.edge and ev.clock >= self.clock:
+                        self._push_event(ev)
                 return True
             return False
         else:
@@ -202,6 +213,10 @@ class LeximinSolver:
         self.active.add(vc)
         LOGGER.info("Activated bin %s as %s", fc, vc)
         self._schedule_events_for(vc)
+        # Other active components computed tight-edge events for fc's vertices assuming
+        # they were static in BIN (Case C).  Now those vertices are moving (active), so
+        # their Case B / no-event analysis may apply instead — reschedule to correct.
+        self._reschedule_tight_edges_to(frozenset(fc.vertices))
 
     def _on_fully_repaired(self, event: FullyRepairedEvent) -> None:
         """Finalize one valid component and return its remainders to bins."""
@@ -211,6 +226,10 @@ class LeximinSolver:
         LOGGER.info("Component fully repaired: %s; minsub1=%s", vc, min_sub)
         self.fully_repaired.update(min_sub.vertices)
         self._add_remainders_to_bin(vc, min_sub)
+        # All of vc's vertices changed status (some to FULLY_REPAIRED, some back to BIN).
+        # Active components that had Case B events (no-event-needed) to those vertices now
+        # see a static profit; they may need a Case C event scheduled.
+        self._reschedule_tight_edges_to(frozenset(vc.vertices))
 
     def _on_tight_edge(self, event: TightEdgeEvent) -> None:
         """Handle a tight subpar edge according to current status of its endpoint."""
@@ -224,12 +243,14 @@ class LeximinSolver:
             LOGGER.info("Tight edge endpoint %d is frozen; minsub3=%s", j, min_sub)
             self.frozen.update(min_sub.vertices)
             self._add_remainders_to_bin(source_vc, min_sub)
+            self._reschedule_tight_edges_to(frozenset(source_vc.vertices))
 
         elif j in self.fully_repaired:
             min_sub = source_vc.compute_min_sub3(i)
             LOGGER.info("Tight edge endpoint %d is fully repaired; minsub3=%s", j, min_sub)
             self.fully_repaired.update(min_sub.vertices)
             self._add_remainders_to_bin(source_vc, min_sub)
+            self._reschedule_tight_edges_to(frozenset(source_vc.vertices))
 
         elif any(j in vc.vertices for vc in self.active):
             [other_vc] = [vc for vc in self.active if j in vc.vertices]
@@ -239,6 +260,7 @@ class LeximinSolver:
             self.fully_repaired.update(source_min_sub.vertices | other_min_sub.vertices)
             self._add_remainders_to_bin(source_vc, source_min_sub)
             self._add_remainders_to_bin(other_vc, other_min_sub)
+            self._reschedule_tight_edges_to(frozenset(source_vc.vertices | other_vc.vertices))
 
         else:
             # Endpoint `j` is still in a bin; absorb that FC as a child and continue.
@@ -248,6 +270,9 @@ class LeximinSolver:
             self.active.add(new_vc)
             LOGGER.info("Attached bin component %s to %s at vertex %d -> %s", fc, source_vc, i, new_vc)
             self._schedule_events_for(new_vc)
+            # fc's vertices moved from BIN (static) to ACTIVE (moving) — other active
+            # components that had Case C events to them need updating.
+            self._reschedule_tight_edges_to(frozenset(fc.vertices))
 
     def _schedule_events_for(self, vc: ValidComponent) -> None:
         """Schedule full-repair and tight-edge events for an active component."""
@@ -333,6 +358,23 @@ class LeximinSolver:
                         ev = TightEdgeEvent(self.clock + slack, edge, vc)
                         events.append(ev)
         return events
+
+    def _reschedule_tight_edges_to(self, changed_vertices: frozenset[int]) -> None:
+        """Push updated tight-edge events for active VCs with edges to changed vertices.
+
+        Called whenever a set of vertices transitions between statuses (BIN → ACTIVE,
+        ACTIVE → FROZEN/FULLY_REPAIRED/BIN).  Other active components may have
+        previously computed tight-edge timings that assumed those vertices were in a
+        different state (e.g., Case C "static" when they were actually about to move,
+        or Case B "no event needed" when they later stop moving earlier than expected).
+        Pushing the freshly recomputed events ensures the correct timing is captured;
+        any previously scheduled event with the old timing will be found stale and
+        discarded when it fires.
+        """
+        for vc in list(self.active):
+            for ev in self._get_tight_edge_events_for(vc):
+                if ev.edge[0] in changed_vertices or ev.edge[1] in changed_vertices:
+                    self._push_event(ev)
 
     def _add_remainders_to_bin(self, vc: ValidComponent, min_sub: ValidComponent) -> None:
         """Decompose residual FCs and schedule their bin activation events."""

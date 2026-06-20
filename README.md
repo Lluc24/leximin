@@ -53,14 +53,14 @@ Complexity: $O(mn^3)$ time (dominated by classification), $O(n^2)$ space.
 
 ## Installation
 
-**Requirements:** Python 3.13+, `networkx`, `pulp`, `matplotlib`.
+**Requirements:** Python 3.13+, `networkx`, `pulp`, `matplotlib`, `tqdm`.
 
 ```bash
 git clone https://github.com/Lluc24/leximin.git
 cd leximin
 python -m venv env
 source env/bin/activate
-pip install networkx pulp matplotlib
+pip install networkx pulp matplotlib tqdm
 ```
 
 ---
@@ -127,6 +127,12 @@ The test suite in `tests/` covers:
 - Leximin output matched against the LP reference solver on all paper examples.
 - Graph and matching utilities.
 - The random graph generator.
+
+The randomized cross-validation tests (`test_random_crossval.py`) are excluded by default because they are slow. Run them explicitly with:
+
+```bash
+pytest -m crossval
+```
 
 Logs are written to `logs/pytest.log`.
 

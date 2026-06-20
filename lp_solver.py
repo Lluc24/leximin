@@ -32,6 +32,7 @@ from matching import max_weight_matching
 
 LOGGER = logging.getLogger(__name__)
 _DENOMINATOR_LIMIT = 10**6
+_FLOAT_TOL = 1e-6
 
 
 def _to_frac(val: float) -> Fraction:
@@ -85,7 +86,8 @@ class LeximinLPSolver:
             self._solve_round()
             new_unfixed = self.unfixed.copy()
             for v in self.unfixed:
-                if self.profits[v] == self.lambda_val and self._is_saturated(v):
+                at_lambda = abs(float(self.profits[v]) - float(self.lambda_val)) <= _FLOAT_TOL
+                if at_lambda and self._is_saturated(v):
                     self.saturated[v] = self.lambda_val
                     new_unfixed = new_unfixed - frozenset({v})
             self.unfixed = new_unfixed
@@ -126,7 +128,7 @@ class LeximinLPSolver:
             prob += (p[u] >= float(self.lambda_val), f"LB_{u}")
         prob.solve()
         max_v = _to_frac(value(p[v]))
-        return max_v <= self.lambda_val
+        return float(max_v) <= float(self.lambda_val) + _FLOAT_TOL
 
     def _add_dual_constraints(self, prob: LpProblem, p: dict[int, LpVariable]) -> None:
         """Add efficiency, matched-edge tightness, and dual-feasibility constraints."""

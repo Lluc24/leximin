@@ -67,7 +67,7 @@ class TightEdgeEvent:
     """
 
     clock: Fraction
-    edge: tuple[int, int] = field(compare=False)
+    edge: tuple[int, int]
     source_vc: ValidComponent = field(compare=False)
     # Priority 1: must be handled before activations and repairs at the
     # same clock (see module-level docstring and Remark 2 of Vazirani 2025).
