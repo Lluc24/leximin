@@ -10,7 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from generator import generate_non_degenerate, generate_degenerate
 
-N = tuple(range(4, 53, 3))
+N = tuple(range(55, 68, 3))
 P = (0.3, 0.6, 1.0)
 SEED = tuple(range(1, 11))
 
