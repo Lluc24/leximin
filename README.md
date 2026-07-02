@@ -9,7 +9,7 @@ This is the software artifact accompanying the bachelor's thesis:
 >
 > Supervisor: Vijay V. Vazirani (UC Irvine) · Tutor: Maria José Serna Iglesias (UPC)
 
-The thesis (PDF) is available [here](https://github.com/Lluc24/leximin-docs/blob/main/memory/final-milestone/thesis.pdf). All project documentation (progress milestones, project management) lives in [github.com/Lluc24/leximin-docs](https://github.com/Lluc24/leximin-docs).
+The thesis (PDF) is available [here](https://github.com/Lluc24/leximin-docs/blob/main/memory/final-milestone/thesis.pdf). All project documentation (progress milestones, project management, presentation slides) lives in [github.com/Lluc24/leximin-docs](https://github.com/Lluc24/leximin-docs).
 
 ---
 
